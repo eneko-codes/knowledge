@@ -233,32 +233,37 @@ python validate.py ..\..\..\..\..\..\plugins\goose-docs\ `
 
 ## Why Skills Instead of MCP?
 
-Claude Code can access docs two ways: **MCP servers** fetch pages in real-time, **skills** read pre-indexed local files.
+Claude Code can access docs two ways: **MCP servers** (like [Context7](https://github.com/upstash/context7) or [docs-mcp-server](https://github.com/arabold/docs-mcp-server)) expose a search API, while **skills** give Claude a complete file-based index it can navigate directly.
+
+Both approaches pre-index documentation. The difference is **how Claude finds what it needs**:
 
 <table>
-<tr><th width="50%">MCP Servers</th><th width="50%">Skills (this project)</th></tr>
+<tr><th width="50%">MCP Doc Servers</th><th width="50%">Skills (this project)</th></tr>
 <tr>
 <td>
 
-- Network round-trip per lookup
-- Breaks when APIs change or rate-limit
-- Token overhead from tool schemas and protocol wrapping
-- Blocked by Cloudflare / bot detection on many doc sites
+**Blind search** — Claude formulates a query, calls the search tool, reviews results, and may need to refine and search again. Multiple round-trips if the first query misses.
+
+- LLM must guess the right search terms
+- Results depend on query quality
+- May need multiple search → refine cycles
+- Token cost per tool call (schema + protocol)
 
 </td>
 <td>
 
-- **Sub-millisecond** local file reads
-- **No extra dependencies** at query time
-- **Lower token cost** — no protocol wrapping per call
-- **Full docs map** via SKILL.md index
-- **Hierarchical** — `api/`, `concepts/`, `examples/`
+**Direct navigation** — Claude reads SKILL.md which lists every available page. It sees the full table of contents and navigates directly to the right file.
+
+- LLM sees all available content upfront
+- No guessing — picks the right file from the index
+- Two reads: index + target file
+- No tool call overhead — just file reads
 
 </td>
 </tr>
 </table>
 
-> **Trade-off:** One-time crawl (5–30 min) to generate. Re-crawl when docs update — monthly is usually enough.
+> **Trade-off:** One-time crawl (5–30 min) to generate the plugin. Re-crawl when docs update — monthly is usually enough.
 
 ---
 
