@@ -1,198 +1,153 @@
+<div align="center">
+
 # knowledge
 
-A Claude Code plugin marketplace for generating documentation plugins from external documentation sites.
+**A Claude Code plugin marketplace for turning any documentation site into a local, instant-access plugin.**
 
-## Why This Exists: Skills vs MCP for Documentation
+Crawl once. Query forever. No MCP servers. No API calls. No latency.
 
-Claude Code can access external documentation in two ways: **MCP servers** (real-time API calls) and **skills** (pre-indexed local files). This project takes the skills approach, and here's why.
+[Installation](#installation) ·
+[Usage](#usage) ·
+[How It Works](#how-it-works) ·
+[Troubleshooting](#troubleshooting)
 
-### The MCP Documentation Problem
+</div>
 
-MCP (Model Context Protocol) servers fetch documentation on-the-fly by calling external APIs or scraping pages at query time. This has significant drawbacks for documentation use cases:
+---
 
-| Issue | Impact |
-|-------|--------|
-| **Latency** | Every documentation lookup requires an HTTP round-trip (200-2000ms), sometimes multiple. A single coding question may need 3-5 lookups, adding seconds of wait time. |
-| **Reliability** | External APIs go down, rate-limit, change endpoints, or require authentication. A documentation MCP server that worked yesterday may fail today. |
-| **Token overhead** | MCP tool calls consume tool-use tokens for the request/response protocol on top of the actual content. A 500-token answer requires ~800 tokens when fetched via MCP. |
-| **Incomplete context** | MCP servers typically fetch one page at a time. Claude can't cross-reference related pages or see the full documentation structure without multiple sequential calls. |
-| **Bot detection** | Many documentation sites (Cloudflare-protected, rate-limited) block automated HTTP requests. MCP servers using simple `fetch()` get 403/429 errors on exactly the sites you most need. |
-| **No offline access** | MCP documentation servers require internet connectivity. If you're on a plane, on a train, or behind a restrictive corporate firewall, documentation is unavailable. |
+## Why Skills Instead of MCP?
 
-### The Skills Approach
+Claude Code can access documentation two ways: **MCP servers** fetch pages on-the-fly via API calls, and **skills** read pre-indexed local files. This project takes the skills approach.
 
-Skills solve all of these problems by **pre-indexing documentation into local files** that Claude reads directly from disk:
+<table>
+<tr><th width="50%">MCP Servers (real-time fetching)</th><th width="50%">Skills (local pre-indexed files)</th></tr>
+<tr>
+<td>
 
-| Advantage | How |
-|-----------|-----|
-| **Zero latency** | Documentation is local markdown files. Reading a file takes <1ms, not 200-2000ms. |
-| **100% reliable** | No external dependencies at query time. Files don't go down, rate-limit, or change their API. |
-| **Token efficient** | Direct file reads have no protocol overhead. Claude reads exactly the content it needs. |
-| **Full context** | The SKILL.md index gives Claude a complete map of all documentation. It can cross-reference API pages, examples, and conceptual docs in a single response. |
-| **Hierarchical navigation** | Documentation is organized into `api/`, `concepts/`, `examples/`, `warnings/` directories. Claude reads the index first and navigates to the relevant section — no wasted tokens on irrelevant content. |
-| **Works offline** | Once generated, the plugin works without internet access. |
+- 200–2000ms latency per lookup
+- Breaks when APIs change or rate-limit
+- ~60% token overhead from protocol wrapping
+- One page at a time, no cross-referencing
+- Blocked by Cloudflare and bot detection
+- Requires internet at query time
 
-### The Trade-off
+</td>
+<td>
 
-The skills approach requires a one-time crawl to generate the plugin (5-30 minutes depending on documentation size). Documentation updates require re-running the crawler. For most libraries, documentation changes infrequently enough that weekly or monthly re-crawls are sufficient.
+- **<1ms** reads from local disk
+- **100% reliable** — no external dependencies
+- **Zero protocol overhead** — direct file reads
+- **Full documentation map** via SKILL.md index
+- **Hierarchical navigation** — `api/`, `concepts/`, `examples/`
+- **Works offline** — plane, train, corporate firewall
 
-### Research and Evidence
+</td>
+</tr>
+</table>
 
-The effectiveness of local, pre-indexed documentation over real-time fetching is supported by several observations from the Claude Code ecosystem:
+> **The trade-off:** A one-time crawl (5–30 min) generates the plugin. Re-run the crawler when docs update — for most libraries, monthly is enough.
 
-1. **The official plugin marketplace uses the same pattern.** Anthropic's own `claude-plugins-official` repository distributes documentation as local skill files (e.g., the Stripe plugin uses local markdown references, not MCP calls to the Stripe API).
+<details>
+<summary><strong>Research and evidence</strong></summary>
 
-2. **Context window utilization.** Claude's 200K token context window is most effective when filled with relevant content, not protocol overhead. A pre-indexed documentation plugin can load a complete SITEMAP.md (listing all available pages) in ~2K tokens, giving Claude a map of the entire library. An MCP server would need to be called just to discover what pages exist.
+<br>
 
-3. **Deterministic behavior.** Local files produce deterministic, reproducible answers. MCP servers can return different results due to A/B testing, geo-routing, CDN caching, or page updates between calls.
+1. **Anthropic uses the same pattern.** The official `claude-plugins-official` marketplace distributes documentation as local skill files (e.g., the Stripe plugin uses local markdown, not MCP calls).
 
-4. **Community convergence.** Multiple Claude Code plugin developers have independently converged on the "crawl once, read locally" pattern for documentation, suggesting it's a natural optimum for this use case.
+2. **Better context window utilization.** A pre-indexed SITEMAP.md gives Claude a complete map of all docs in ~2K tokens. An MCP server would need a tool call just to discover what pages exist.
 
-## Plugins
+3. **Deterministic answers.** Local files always return the same content. MCP servers vary due to A/B testing, geo-routing, CDN caching, or page updates between calls.
+
+4. **Community convergence.** Multiple Claude Code plugin developers have independently converged on the "crawl once, read locally" pattern, suggesting it's the natural optimum.
+
+</details>
+
+---
+
+## Available Plugins
 
 | Plugin | Description |
-|--------|-------------|
-| **doc-scanner** | Crawls external documentation sites and generates complete documentation plugins |
+|:-------|:------------|
+| `doc-scanner` | Crawls any documentation site and generates a complete, hierarchical documentation plugin |
+
+---
 
 ## Prerequisites
 
-### Python 3.8+
-
-doc-scanner requires Python 3.8 or later (tested on 3.9, 3.11, 3.12).
-
 <details>
-<summary><strong>macOS</strong></summary>
+<summary><strong>Python 3.8+</strong> — Required for doc-scanner scripts</summary>
 
-Python 3 comes pre-installed on macOS 12.3+. Verify with:
+<br>
+
+**macOS** — Pre-installed on macOS 12.3+. Verify: `python3 --version`
 
 ```bash
-python3 --version
+brew install python@3.12          # Homebrew
+sudo port install python312       # MacPorts
 ```
 
-If not installed or you need a newer version:
+**Linux**
 
 ```bash
-# Homebrew
-brew install python@3.12
-
-# MacPorts
-sudo port install python312
-```
-
-</details>
-
-<details>
-<summary><strong>Linux (Ubuntu/Debian)</strong></summary>
-
-```bash
-# APT (Ubuntu 22.04+ includes Python 3.10+)
+# Ubuntu / Debian
 sudo apt update && sudo apt install python3 python3-venv python3-pip
 
-# Or install a specific version
-sudo apt install python3.12 python3.12-venv
-```
-
-</details>
-
-<details>
-<summary><strong>Linux (Fedora/RHEL/CentOS)</strong></summary>
-
-```bash
-# DNF
+# Fedora / RHEL
 sudo dnf install python3 python3-pip
 
-# Or a specific version
-sudo dnf install python3.12
-```
-
-</details>
-
-<details>
-<summary><strong>Linux (Arch)</strong></summary>
-
-```bash
+# Arch
 sudo pacman -S python python-pip
 ```
 
-</details>
-
-<details>
-<summary><strong>Windows</strong></summary>
+**Windows**
 
 ```powershell
-# winget (recommended)
-winget install Python.Python.3.12
-
-# Chocolatey
-choco install python --version=3.12
-
-# Scoop
-scoop install python
+winget install Python.Python.3.12       # winget (recommended)
+choco install python --version=3.12     # Chocolatey
+scoop install python                    # Scoop
 ```
 
-Or download from [python.org](https://www.python.org/downloads/windows/).
-
-> **Important:** During installation, check "Add Python to PATH".
+Or download from [python.org](https://www.python.org/downloads/windows/). Check **"Add Python to PATH"** during install.
 
 </details>
 
-### Claude Code
-
-doc-scanner is a Claude Code plugin. You need Claude Code installed:
-
 <details>
-<summary><strong>macOS / Linux</strong></summary>
+<summary><strong>Claude Code</strong> — The CLI this plugin extends</summary>
+
+<br>
+
+**macOS / Linux**
 
 ```bash
-# npm (requires Node.js 18+)
-npm install -g @anthropic-ai/claude-code
-
-# Homebrew
-brew install claude-code
+npm install -g @anthropic-ai/claude-code     # npm (Node.js 18+)
+brew install claude-code                      # Homebrew
 ```
 
-</details>
-
-<details>
-<summary><strong>Windows</strong></summary>
+**Windows**
 
 ```powershell
-# npm (requires Node.js 18+)
-npm install -g @anthropic-ai/claude-code
+npm install -g @anthropic-ai/claude-code     # npm (Node.js 18+)
 ```
 
 </details>
 
-### Playwright System Dependencies
-
-Playwright's Chromium browser requires certain system libraries. The `playwright install chromium` command handles the browser download, but some Linux distributions need additional system packages.
-
 <details>
-<summary><strong>macOS</strong></summary>
+<summary><strong>Playwright system libraries</strong> — Linux only</summary>
 
-No additional system dependencies needed. Playwright's Chromium bundle is self-contained on macOS.
+<br>
 
-</details>
-
-<details>
-<summary><strong>Linux (Ubuntu/Debian)</strong></summary>
+macOS and Windows need nothing extra. On Linux:
 
 ```bash
-# Install system dependencies for Chromium
+# Automatic (recommended)
 sudo npx playwright install-deps chromium
 
-# Or manually:
+# Manual — Ubuntu / Debian
 sudo apt install libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
   libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
   libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2
-```
 
-</details>
-
-<details>
-<summary><strong>Linux (Fedora/RHEL)</strong></summary>
-
-```bash
+# Manual — Fedora / RHEL
 sudo dnf install nss nspr atk at-spi2-atk cups-libs libdrm \
   libxkbcommon libXcomposite libXdamage libXfixes libXrandr mesa-libgbm \
   pango cairo alsa-lib
@@ -200,33 +155,26 @@ sudo dnf install nss nspr atk at-spi2-atk cups-libs libdrm \
 
 </details>
 
-<details>
-<summary><strong>Windows</strong></summary>
-
-No additional system dependencies needed. Playwright's Chromium bundle is self-contained on Windows.
-
-</details>
+---
 
 ## Installation
 
-### Step 1: Add the Marketplace
+**1. Add the marketplace**
 
 ```bash
 claude /plugin marketplace add https://github.com/eneko-codes/claude-knowledge
 ```
 
-### Step 2: Install the Plugin
+**2. Install the plugin**
 
 ```bash
 claude /plugin install doc-scanner@knowledge
 ```
 
-### Step 3: Run Setup (One-Time)
-
-The first time you use doc-scanner, Claude will run the setup script automatically. This creates a Python virtual environment and downloads Chromium (~200MB). You can also run it manually:
+**3. Run setup** *(one-time — installs Python deps + Chromium ~200MB)*
 
 <details>
-<summary><strong>macOS / Linux</strong></summary>
+<summary>macOS / Linux</summary>
 
 ```bash
 cd ~/.claude/plugins/cache/knowledge/*/plugins/doc-scanner/skills/doc-scanner/scripts
@@ -236,7 +184,7 @@ bash setup.sh
 </details>
 
 <details>
-<summary><strong>Windows (PowerShell)</strong></summary>
+<summary>Windows (PowerShell)</summary>
 
 ```powershell
 cd $env:USERPROFILE\.claude\plugins\cache\knowledge\*\plugins\doc-scanner\skills\doc-scanner\scripts
@@ -246,118 +194,141 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-> **Note:** On Windows, use `.venv\Scripts\Activate.ps1` instead of `source .venv/bin/activate`. The Python scripts themselves are cross-platform.
+> On Windows, use `.venv\Scripts\Activate.ps1` instead of `source .venv/bin/activate`.
 
 </details>
 
+---
+
 ## Usage
 
-Once installed, tell Claude to scan documentation for any library:
+Tell Claude to scan any documentation site:
 
 ```
-> Scan the documentation at https://docs.sqlc.dev/en/stable/ and generate a docs plugin for sqlc
-```
-
-```
-> Crawl the htmx documentation at https://htmx.org/docs/ and create a plugin
+Scan the documentation at https://docs.sqlc.dev/en/stable/ and generate a docs plugin for sqlc
 ```
 
 ```
-> Index the Goose library docs at https://pressly.github.io/goose/
+Crawl the htmx documentation at https://htmx.org/docs/ and create a plugin
 ```
 
-Claude will:
-1. Ask for any missing parameters (library name, version)
-2. Crawl all documentation pages
-3. Extract and classify content
-4. Build a complete documentation plugin
-5. Validate coverage
-6. Register it in the marketplace
+```
+Index the Goose library docs at https://pressly.github.io/goose/
+```
 
-### What Gets Generated
+Claude handles the full workflow automatically:
 
-For a library called `sqlc`, doc-scanner produces:
+1. Asks for any missing parameters (library name, version)
+2. Crawls all documentation pages
+3. Extracts and classifies content
+4. Builds a complete documentation plugin
+5. Validates coverage
+6. Registers it in the marketplace
+
+### Generated plugin structure
+
+For a library called `sqlc`:
 
 ```
 plugins/docs-sqlc/
 ├── .claude-plugin/
-│   └── plugin.json                          # Plugin metadata
+│   └── plugin.json                  # Plugin metadata
 └── skills/sqlc-docs/
-    ├── SKILL.md                             # Entry point — full file index
+    ├── SKILL.md                     # Entry point — full file index
     ├── index/
-    │   └── SITEMAP.md                       # Complete page listing
-    ├── api/                                 # API reference pages
+    │   └── SITEMAP.md               # Complete page listing
+    ├── api/                         # API reference pages
     │   ├── configuration.md
-    │   ├── query-annotations.md
-    │   └── ...
-    ├── concepts/                            # Conceptual docs + tutorials
+    │   └── query-annotations.md
+    ├── concepts/                    # Conceptual docs + tutorials
     │   ├── overview.md
-    │   ├── getting-started.md
-    │   └── ...
-    ├── examples/                            # Code-heavy example pages
-    │   ├── using-sqlc-with-postgresql.md
-    │   └── ...
-    └── warnings/                            # Deprecation notices
+    │   └── getting-started.md
+    ├── examples/                    # Code-heavy example pages
+    │   └── using-sqlc-with-postgresql.md
+    └── warnings/                    # Deprecation notices
         └── WARNINGS.md
 ```
 
-### Using a Generated Plugin
-
-After doc-scanner generates a plugin, install it:
+### Using a generated plugin
 
 ```bash
 claude /plugin install docs-sqlc@knowledge
 ```
 
-Then ask Claude questions about the library — it will automatically use the documentation:
+Then just ask Claude — it automatically uses the documentation:
 
 ```
-> What's the configuration format for sqlc.yaml?
-> How do I use sqlc with PostgreSQL arrays?
-> What functions does sqlc generate for a query?
+What's the configuration format for sqlc.yaml?
+How do I use sqlc with PostgreSQL arrays?
+What functions does sqlc generate for a query?
 ```
 
-## Pipeline Scripts
+---
 
-The doc-scanner skill orchestrates four Python scripts that form a pipeline:
+## How It Works
+
+The doc-scanner skill orchestrates four scripts in a pipeline:
 
 ```
-crawl.py → extract.py → build_plugin.py → validate.py
+crawl.py  ──>  extract.py  ──>  build_plugin.py  ──>  validate.py
+ (URLs)        (markdown)       (plugin files)        (coverage report)
 ```
 
-| Script | Input | Output | Purpose |
-|--------|-------|--------|---------|
-| `crawl.py` | Root URL | `sitemap.json` | BFS crawl to discover all doc pages |
-| `extract.py` | `sitemap.json` | `extracted/*.json` | Fetch and convert each page to structured markdown |
-| `build_plugin.py` | `extracted/` dir | Complete plugin directory | Assemble content into plugin structure |
-| `validate.py` | Plugin directory | Coverage report | Verify completeness and correctness |
+### `crawl.py` — Discover pages
 
-### Manual Usage
+Launches a headless Chromium browser with [playwright-stealth](https://github.com/nickmilo/playwright-stealth) anti-fingerprint patches. Performs BFS traversal from the root URL, following same-domain links. Outputs `sitemap.json` with URL, title, H1–H3 headings, and HTTP status for every page.
 
-You can run the scripts directly without Claude if needed:
+Key features:
+- `--same-path-prefix` restricts crawling to a URL subtree (critical for versioned docs like `/en/stable/`)
+- Randomized delay (1.5s ± 0.5s) mimics human browsing patterns
+- Handles redirects, HTTP errors, and JavaScript-rendered pages
+
+### `extract.py` — Convert to markdown
+
+Re-visits each page with the same stealth browser. Locates the main content area via 15 CSS selector heuristics (`<main>`, `<article>`, `[role="main"]`, `.docs-content`, etc.). Strips navigation, sidebars, footers, and UI widgets. Converts to markdown via [html2text](https://github.com/Alir3z4/html2text).
+
+Classifies each page as: `api-reference` · `conceptual` · `tutorial` · `example` · `warning`
+
+Extracts function signatures using language-specific regex (Go, Python, TypeScript, Rust, Java).
+
+### `build_plugin.py` — Assemble the plugin
+
+Groups pages by category into directories. Generates one markdown file per page. Consolidates warnings into a single `WARNINGS.md`. Builds the `SKILL.md` index with trigger phrases, quick reference for top API functions, and a complete file listing.
+
+### `validate.py` — Verify coverage
+
+Runs 7 checks:
+
+| # | Check | Threshold |
+|:-:|:------|:----------|
+| 1 | `plugin.json` exists with required fields | required |
+| 2 | `SKILL.md` has YAML frontmatter + substantial content | > 500 chars |
+| 3 | `SITEMAP.md` exists | required |
+| 4 | Page count matches sitemap (accounting for warning consolidation) | exact |
+| 5 | Section coverage — sitemap headings found in content files | >= 90% |
+| 6 | Link resolution — all SKILL.md file paths resolve | 100% |
+| 7 | No empty content files | 0 empty |
+
+### Manual usage
 
 <details>
-<summary><strong>macOS / Linux</strong></summary>
+<summary>macOS / Linux</summary>
 
 ```bash
 cd plugins/doc-scanner/skills/doc-scanner/scripts
 source .venv/bin/activate
 
-# 1. Crawl documentation
 python3 crawl.py https://pressly.github.io/goose/ \
   --output /tmp/goose-sitemap.json \
   --same-path-prefix
 
-# 2. Extract content
 python3 extract.py /tmp/goose-sitemap.json \
   --output /tmp/goose-extracted/
 
-# 3. Build plugin
 python3 build_plugin.py goose /tmp/goose-extracted/ \
   --source-url https://pressly.github.io/goose/ \
   --output-dir ../../../../../../plugins/docs-goose
 
-# 4. Validate
 python3 validate.py ../../../../../../plugins/docs-goose/ \
   --sitemap /tmp/goose-sitemap.json
 ```
@@ -365,119 +336,93 @@ python3 validate.py ../../../../../../plugins/docs-goose/ \
 </details>
 
 <details>
-<summary><strong>Windows (PowerShell)</strong></summary>
+<summary>Windows (PowerShell)</summary>
 
 ```powershell
 cd plugins\doc-scanner\skills\doc-scanner\scripts
 .\.venv\Scripts\Activate.ps1
 
-# 1. Crawl documentation
 python crawl.py https://pressly.github.io/goose/ `
   --output $env:TEMP\goose-sitemap.json `
   --same-path-prefix
 
-# 2. Extract content
 python extract.py $env:TEMP\goose-sitemap.json `
   --output $env:TEMP\goose-extracted\
 
-# 3. Build plugin
 python build_plugin.py goose $env:TEMP\goose-extracted\ `
   --source-url https://pressly.github.io/goose/ `
   --output-dir ..\..\..\..\..\..\plugins\docs-goose
 
-# 4. Validate
 python validate.py ..\..\..\..\..\..\plugins\docs-goose\ `
   --sitemap $env:TEMP\goose-sitemap.json
 ```
 
 </details>
 
-## How It Works
-
-### Crawling (crawl.py)
-
-- Launches a headless Chromium browser with [playwright-stealth](https://github.com/nickmilo/playwright-stealth) patches that modify 20+ browser fingerprint vectors (navigator.webdriver, chrome.runtime, WebGL vendor, etc.)
-- Performs BFS traversal starting from the root URL, following only same-domain links
-- `--same-path-prefix` restricts crawling to the URL subtree (critical for versioned docs like `/en/stable/`)
-- Adds randomized delay between requests (default 1.5s ± 0.5s) to mimic human browsing
-- Handles redirects, HTTP errors, and JavaScript-rendered pages
-- Outputs a `sitemap.json` with URL, title, H1/H2/H3 headings, and HTTP status for every page
-
-### Extraction (extract.py)
-
-- Re-visits each page from the sitemap with the same stealth browser
-- Detects the main content area using 15 CSS selector heuristics (`<main>`, `<article>`, `[role="main"]`, `.docs-content`, etc.)
-- Strips navigation, sidebar, header, footer, and UI widgets (copy buttons, breadcrumbs, etc.)
-- Converts HTML to markdown using [html2text](https://github.com/Alir3z4/html2text) with settings that preserve code blocks, links, and formatting
-- Classifies each page as: `api-reference`, `conceptual`, `tutorial`, `example`, or `warning`
-- Extracts function signatures using language-specific regex patterns (Go, Python, TypeScript, Rust, Java)
-
-### Plugin Generation (build_plugin.py)
-
-- Groups pages by category into directories: `api/`, `concepts/`, `examples/`, `warnings/`
-- Generates one markdown file per page using a template (title, source URL, full content)
-- Consolidates all warning/deprecation pages into a single `warnings/WARNINGS.md`
-- Builds `index/SITEMAP.md` — a complete page listing grouped by category
-- Generates `SKILL.md` — the entry point Claude reads, with trigger phrases, quick reference for top API functions, and a complete file index
-- Generates `.claude-plugin/plugin.json` metadata
-
-### Validation (validate.py)
-
-Runs 7 checks with clear PASS/FAIL output:
-1. `plugin.json` exists with required fields
-2. `SKILL.md` has YAML frontmatter and substantial content
-3. `SITEMAP.md` exists
-4. Page count matches between generated files and sitemap (accounting for warning consolidation)
-5. Section coverage: >= 90% of sitemap headings found in content files
-6. Link resolution: all file paths in SKILL.md point to existing files
-7. No empty content files
+---
 
 ## Troubleshooting
 
-### Playwright fails to install Chromium
+<details>
+<summary><strong>Playwright fails to install Chromium</strong></summary>
 
-**Symptom:** `playwright install chromium` hangs or fails.
+<br>
 
-**Fix:** Ensure you have internet access and sufficient disk space (~200MB). On Linux, install system dependencies first:
+Ensure internet access and ~200MB disk space. On Linux, install system deps first:
 
 ```bash
 sudo npx playwright install-deps chromium
 ```
 
-### Crawl gets blocked (403/429 errors)
+</details>
 
-**Symptom:** Many pages return HTTP 403 or 429 in the sitemap.
+<details>
+<summary><strong>Crawl gets blocked (403/429 errors)</strong></summary>
 
-**Fix:** Increase the delay to be more polite:
+<br>
+
+Increase the delay:
 
 ```bash
 python3 crawl.py <url> --delay 3.0
 ```
 
-Some sites may require even longer delays or may block automated access entirely.
+Some sites may require even longer delays or block automated access entirely.
 
-### Extraction produces empty markdown
+</details>
 
-**Symptom:** Extracted JSON files have empty `markdown` fields.
+<details>
+<summary><strong>Extraction produces empty markdown</strong></summary>
 
-**Fix:** The content area heuristic may not match the site's HTML structure. Check the site's HTML to find the content selector and file an issue with the site URL so we can add support.
+<br>
 
-### Windows: `source .venv/bin/activate` fails
+The content area heuristic may not match the site's HTML structure. Inspect the page's HTML to find the correct content selector and open an issue with the site URL.
 
-**Symptom:** `source: not found` or similar error.
+</details>
 
-**Fix:** On Windows, use PowerShell instead of Command Prompt, and activate with:
+<details>
+<summary><strong>Windows: <code>source .venv/bin/activate</code> fails</strong></summary>
+
+<br>
+
+Use PowerShell, not Command Prompt:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-If PowerShell execution policy blocks it:
+If execution policy blocks it:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-## License
+</details>
 
-MIT
+---
+
+<div align="center">
+
+**MIT License**
+
+</div>
