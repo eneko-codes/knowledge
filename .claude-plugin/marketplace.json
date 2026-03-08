@@ -6,8 +6,19 @@
   },
   "plugins": [
     {
+      "name": "docs-goose",
+      "description": "Goose (Go database migration tool) documentation reference",
+      "version": "1.0.0",
+      "author": {
+        "name": "eneko-codes"
+      },
+      "source": "./plugins/docs-goose",
+      "category": "development",
+      "keywords": ["documentation", "goose", "go", "migrations", "database"]
+    },
+    {
       "name": "doc-scanner",
-      "description": "Scans external documentation and generates hierarchical documentation plugins",
+      "description": "Crawl any documentation site and generate a docs plugin (requires Python + Playwright)",
       "version": "1.0.0",
       "author": {
         "name": "eneko-codes"

@@ -1,0 +1,10 @@
+{
+  "name": "docs-goose",
+  "description": "Goose documentation reference (latest)",
+  "version": "latest",
+  "author": {
+    "name": "eneko-codes"
+  },
+  "homepage": "https://pressly.github.io/goose/",
+  "keywords": ["documentation", "goose", "reference"]
+}
