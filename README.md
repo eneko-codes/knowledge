@@ -2,77 +2,127 @@
 
 # knowledge
 
-**A Claude Code plugin marketplace for turning any documentation site into a local, instant-access plugin.**
+**Turn any documentation site into a local, instant-access Claude Code plugin.**
 
 Crawl once. Query forever. No MCP servers. No API calls. No latency.
 
-[Installation](#installation) ·
 [Usage](#usage) ·
+[Installation](#installation) ·
 [How It Works](#how-it-works) ·
+[Why Skills?](#why-skills-instead-of-mcp) ·
 [Troubleshooting](#troubleshooting)
 
 </div>
 
 ---
 
-## Why Skills Instead of MCP?
+## Usage
 
-Claude Code can access documentation two ways: **MCP servers** fetch pages on-the-fly via API calls, and **skills** read pre-indexed local files. This project takes the skills approach.
+Tell Claude to scan any documentation site:
 
-<table>
-<tr><th width="50%">MCP Servers (real-time fetching)</th><th width="50%">Skills (local pre-indexed files)</th></tr>
-<tr>
-<td>
+```
+Scan the documentation at https://docs.sqlc.dev/en/stable/ and generate a docs plugin for sqlc
+```
 
-- 200–2000ms latency per lookup
-- Breaks when APIs change or rate-limit
-- ~60% token overhead from protocol wrapping
-- One page at a time, no cross-referencing
-- Blocked by Cloudflare and bot detection
-- Requires internet at query time
+```
+Crawl the htmx documentation at https://htmx.org/docs/ and create a plugin
+```
 
-</td>
-<td>
+```
+Index the Goose library docs at https://pressly.github.io/goose/
+```
 
-- **<1ms** reads from local disk
-- **100% reliable** — no external dependencies
-- **Zero protocol overhead** — direct file reads
-- **Full documentation map** via SKILL.md index
-- **Hierarchical navigation** — `api/`, `concepts/`, `examples/`
-- **Works offline** — plane, train, corporate firewall
+Claude handles the full workflow automatically:
 
-</td>
-</tr>
-</table>
+1. Asks for any missing parameters (library name, version)
+2. Crawls all documentation pages
+3. Extracts and classifies content
+4. Builds a complete documentation plugin
+5. Validates coverage
+6. Registers it in the marketplace
 
-> **The trade-off:** A one-time crawl (5–30 min) generates the plugin. Re-run the crawler when docs update — for most libraries, monthly is enough.
+### What you get
+
+For a library called `sqlc`, doc-scanner produces:
+
+```
+plugins/docs-sqlc/
+├── .claude-plugin/
+│   └── plugin.json                  # Plugin metadata
+└── skills/sqlc-docs/
+    ├── SKILL.md                     # Entry point — full file index
+    ├── index/
+    │   └── SITEMAP.md               # Complete page listing
+    ├── api/                         # API reference pages
+    │   ├── configuration.md
+    │   └── query-annotations.md
+    ├── concepts/                    # Conceptual docs + tutorials
+    │   ├── overview.md
+    │   └── getting-started.md
+    ├── examples/                    # Code-heavy example pages
+    │   └── using-sqlc-with-postgresql.md
+    └── warnings/                    # Deprecation notices
+        └── WARNINGS.md
+```
+
+Then install and use it:
+
+```bash
+claude /plugin install docs-sqlc@knowledge
+```
+
+```
+What's the configuration format for sqlc.yaml?
+How do I use sqlc with PostgreSQL arrays?
+What functions does sqlc generate for a query?
+```
+
+Claude reads the local docs instantly — no API calls, no waiting.
+
+---
+
+## Installation
+
+**1. Add the marketplace**
+
+```bash
+claude /plugin marketplace add https://github.com/eneko-codes/claude-knowledge
+```
+
+**2. Install the plugin**
+
+```bash
+claude /plugin install doc-scanner@knowledge
+```
+
+**3. Run setup** *(one-time — installs Python deps + Chromium ~200MB)*
 
 <details>
-<summary><strong>Research and evidence</strong></summary>
+<summary>macOS / Linux</summary>
 
-<br>
-
-1. **Anthropic uses the same pattern.** The official `claude-plugins-official` marketplace distributes documentation as local skill files (e.g., the Stripe plugin uses local markdown, not MCP calls).
-
-2. **Better context window utilization.** A pre-indexed SITEMAP.md gives Claude a complete map of all docs in ~2K tokens. An MCP server would need a tool call just to discover what pages exist.
-
-3. **Deterministic answers.** Local files always return the same content. MCP servers vary due to A/B testing, geo-routing, CDN caching, or page updates between calls.
-
-4. **Community convergence.** Multiple Claude Code plugin developers have independently converged on the "crawl once, read locally" pattern, suggesting it's the natural optimum.
+```bash
+cd ~/.claude/plugins/cache/knowledge/*/plugins/doc-scanner/skills/doc-scanner/scripts
+bash setup.sh
+```
 
 </details>
 
----
+<details>
+<summary>Windows (PowerShell)</summary>
 
-## Available Plugins
+```powershell
+cd $env:USERPROFILE\.claude\plugins\cache\knowledge\*\plugins\doc-scanner\skills\doc-scanner\scripts
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+playwright install chromium
+```
 
-| Plugin | Description |
-|:-------|:------------|
-| `doc-scanner` | Crawls any documentation site and generates a complete, hierarchical documentation plugin |
+> On Windows, use `.venv\Scripts\Activate.ps1` instead of `source .venv/bin/activate`.
 
----
+</details>
 
-## Prerequisites
+### Prerequisites
 
 <details>
 <summary><strong>Python 3.8+</strong> — Required for doc-scanner scripts</summary>
@@ -154,114 +204,6 @@ sudo dnf install nss nspr atk at-spi2-atk cups-libs libdrm \
 ```
 
 </details>
-
----
-
-## Installation
-
-**1. Add the marketplace**
-
-```bash
-claude /plugin marketplace add https://github.com/eneko-codes/claude-knowledge
-```
-
-**2. Install the plugin**
-
-```bash
-claude /plugin install doc-scanner@knowledge
-```
-
-**3. Run setup** *(one-time — installs Python deps + Chromium ~200MB)*
-
-<details>
-<summary>macOS / Linux</summary>
-
-```bash
-cd ~/.claude/plugins/cache/knowledge/*/plugins/doc-scanner/skills/doc-scanner/scripts
-bash setup.sh
-```
-
-</details>
-
-<details>
-<summary>Windows (PowerShell)</summary>
-
-```powershell
-cd $env:USERPROFILE\.claude\plugins\cache\knowledge\*\plugins\doc-scanner\skills\doc-scanner\scripts
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-playwright install chromium
-```
-
-> On Windows, use `.venv\Scripts\Activate.ps1` instead of `source .venv/bin/activate`.
-
-</details>
-
----
-
-## Usage
-
-Tell Claude to scan any documentation site:
-
-```
-Scan the documentation at https://docs.sqlc.dev/en/stable/ and generate a docs plugin for sqlc
-```
-
-```
-Crawl the htmx documentation at https://htmx.org/docs/ and create a plugin
-```
-
-```
-Index the Goose library docs at https://pressly.github.io/goose/
-```
-
-Claude handles the full workflow automatically:
-
-1. Asks for any missing parameters (library name, version)
-2. Crawls all documentation pages
-3. Extracts and classifies content
-4. Builds a complete documentation plugin
-5. Validates coverage
-6. Registers it in the marketplace
-
-### Generated plugin structure
-
-For a library called `sqlc`:
-
-```
-plugins/docs-sqlc/
-├── .claude-plugin/
-│   └── plugin.json                  # Plugin metadata
-└── skills/sqlc-docs/
-    ├── SKILL.md                     # Entry point — full file index
-    ├── index/
-    │   └── SITEMAP.md               # Complete page listing
-    ├── api/                         # API reference pages
-    │   ├── configuration.md
-    │   └── query-annotations.md
-    ├── concepts/                    # Conceptual docs + tutorials
-    │   ├── overview.md
-    │   └── getting-started.md
-    ├── examples/                    # Code-heavy example pages
-    │   └── using-sqlc-with-postgresql.md
-    └── warnings/                    # Deprecation notices
-        └── WARNINGS.md
-```
-
-### Using a generated plugin
-
-```bash
-claude /plugin install docs-sqlc@knowledge
-```
-
-Then just ask Claude — it automatically uses the documentation:
-
-```
-What's the configuration format for sqlc.yaml?
-How do I use sqlc with PostgreSQL arrays?
-What functions does sqlc generate for a query?
-```
 
 ---
 
@@ -356,6 +298,55 @@ python build_plugin.py goose $env:TEMP\goose-extracted\ `
 python validate.py ..\..\..\..\..\..\plugins\docs-goose\ `
   --sitemap $env:TEMP\goose-sitemap.json
 ```
+
+</details>
+
+---
+
+## Why Skills Instead of MCP?
+
+Claude Code can access documentation two ways: **MCP servers** fetch pages on-the-fly via API calls, and **skills** read pre-indexed local files. This project takes the skills approach.
+
+<table>
+<tr><th width="50%">MCP Servers (real-time fetching)</th><th width="50%">Skills (local pre-indexed files)</th></tr>
+<tr>
+<td>
+
+- 200–2000ms latency per lookup
+- Breaks when APIs change or rate-limit
+- ~60% token overhead from protocol wrapping
+- One page at a time, no cross-referencing
+- Blocked by Cloudflare and bot detection
+- Requires internet at query time
+
+</td>
+<td>
+
+- **<1ms** reads from local disk
+- **100% reliable** — no external dependencies
+- **Zero protocol overhead** — direct file reads
+- **Full documentation map** via SKILL.md index
+- **Hierarchical navigation** — `api/`, `concepts/`, `examples/`
+- **Works offline** — plane, train, corporate firewall
+
+</td>
+</tr>
+</table>
+
+> **The trade-off:** A one-time crawl (5–30 min) generates the plugin. Re-run the crawler when docs update — for most libraries, monthly is enough.
+
+<details>
+<summary><strong>Research and evidence</strong></summary>
+
+<br>
+
+1. **Anthropic uses the same pattern.** The official `claude-plugins-official` marketplace distributes documentation as local skill files (e.g., the Stripe plugin uses local markdown, not MCP calls).
+
+2. **Better context window utilization.** A pre-indexed SITEMAP.md gives Claude a complete map of all docs in ~2K tokens. An MCP server would need a tool call just to discover what pages exist.
+
+3. **Deterministic answers.** Local files always return the same content. MCP servers vary due to A/B testing, geo-routing, CDN caching, or page updates between calls.
+
+4. **Community convergence.** Multiple Claude Code plugin developers have independently converged on the "crawl once, read locally" pattern, suggesting it's the natural optimum.
 
 </details>
 
