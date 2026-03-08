@@ -157,6 +157,19 @@ def load_template(name):
     return path.read_text(encoding="utf-8")
 
 
+def render_template(template, **kwargs):
+    """Safely render a template string with variable substitution.
+
+    Python's str.format() fails on strings containing literal braces (e.g.,
+    Go code like `func main() {`). We use sequential str.replace() instead,
+    which only substitutes known placeholders and ignores literal braces.
+    """
+    result = template
+    for key, value in kwargs.items():
+        result = result.replace("{" + key + "}", str(value))
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Content generation
 # ---------------------------------------------------------------------------
@@ -181,7 +194,8 @@ def generate_section_file(page, library_name):
     if warnings:
         warnings_block = "\n\n> **Warnings:**\n" + "\n".join(f"> - {w}" for w in warnings)
 
-    return template.format(
+    return render_template(
+        template,
         title=title,
         source_url=url,
         content=markdown,
@@ -270,7 +284,8 @@ def generate_skill_md(library_name, pages, source_url, version, file_listing):
         count = len(groups[category])
         category_summary += f"- **{output_dir}/**: {count} {category.replace('-', ' ')} pages\n"
 
-    return template.format(
+    return render_template(
+        template,
         library_name=library_name,
         library_name_title=library_name.replace("-", " ").title(),
         version=version,
@@ -289,7 +304,8 @@ def generate_plugin_json(library_name, version, source_url):
     load the plugin. It must contain name, description, version, and author.
     """
     template = load_template("plugin_json_template.json")
-    return template.format(
+    return render_template(
+        template,
         library_name=library_name,
         library_name_title=library_name.replace("-", " ").title(),
         version=version,

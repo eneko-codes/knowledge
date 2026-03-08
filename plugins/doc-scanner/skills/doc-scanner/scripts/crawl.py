@@ -36,7 +36,7 @@ from datetime import date
 from urllib.parse import urljoin, urlparse, urldefrag
 
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
+from playwright_stealth import Stealth
 
 # Configure structured logging so crawl progress is easy to follow in the terminal.
 # Timestamps use HH:MM:SS (no date) since crawls are single-session operations.
@@ -268,7 +268,11 @@ def crawl(args):
         # Apply stealth patches — modifies navigator.webdriver, chrome.runtime,
         # WebGL renderer, and ~20 other fingerprint vectors to appear as a normal
         # Chrome browser. This is what lets us bypass Cloudflare's bot detection.
-        stealth_sync(page)
+        # Apply stealth patches — modifies navigator.webdriver, chrome.runtime,
+        # WebGL renderer, and ~20 other fingerprint vectors to appear as a normal
+        # Chrome browser. This is what lets us bypass Cloudflare's bot detection.
+        # playwright-stealth v2 uses Stealth().apply_stealth_sync() instead of stealth_sync().
+        Stealth().apply_stealth_sync(page)
 
         while queue:
             url, depth = queue.popleft()
