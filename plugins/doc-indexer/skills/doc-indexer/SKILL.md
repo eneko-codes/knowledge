@@ -37,13 +37,12 @@ Ask the user for:
 
 **Versioning:** When the user specifies a version other than `latest`, the generated plugin includes the version in its name. For example, `laravel` version `11` produces plugin `laravel-11-docs` with skill `laravel-11-docs`. This allows multiple versions to coexist — the user can have `laravel-11-docs` and `laravel-12-docs` installed simultaneously. Always ask about version when the documentation URL contains a version indicator (e.g., `/v2/`, `/11.x/`, `/en/stable/`).
 
-**Scope:** The plugin can be installed at three scopes:
+**Scope:** The plugin can be installed at two scopes:
 
 | Scope | Output directory | Who can use it | Committed to git? |
 |-------|-----------------|----------------|:--:|
 | **project** | `<project-root>/.claude/plugins/<name>-docs/` | Whole team | Yes — everyone on the project gets the docs |
 | **user** | `~/.claude/plugins/<name>-docs/` | Just you | No — available in all your projects |
-| **local** | `<project-root>/.claude/plugins/<name>-docs/` | Just you | No — add to `.gitignore` |
 
 Recommend **project** scope when the docs are relevant to the current project (e.g., the framework the project uses). This way the whole team benefits. Recommend **user** scope for general-purpose libraries the user works with across multiple projects.
 
@@ -143,12 +142,6 @@ The plugin directory at `<project-root>/.claude/plugins/<name>-docs/` should be 
 ```bash
 claude /plugin install <name>-docs --scope user
 ```
-
-**Local scope** (just you, one project, not committed):
-```bash
-claude /plugin install <name>-docs --scope local
-```
-Add `.claude/plugins/<name>-docs/` to `.gitignore`.
 
 Report the final results to the user:
 - Total pages indexed

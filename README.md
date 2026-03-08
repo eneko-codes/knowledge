@@ -95,7 +95,6 @@ Claude handles the full pipeline: crawl, extract, build, validate. It will ask y
 |:------|:------------------|:---------|
 | **project** | Whole team (committed to git) | The library is used by the project |
 | **user** | Just you, all projects | General-purpose library you use everywhere |
-| **local** | Just you, one project | Testing or personal preference |
 
 <details>
 <summary><strong>Prerequisites</strong></summary>
