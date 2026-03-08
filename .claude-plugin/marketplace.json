@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "knowledge",
   "owner": {
-    "name": "eneko-codes"
+    "name": "knowledge"
   },
   "plugins": [
     {
@@ -10,7 +10,7 @@
       "description": "Goose (Go database migration tool) documentation reference",
       "version": "1.0.0",
       "author": {
-        "name": "eneko-codes"
+        "name": "knowledge"
       },
       "source": "./plugins/goose-docs",
       "category": "development",
@@ -21,7 +21,7 @@
       "description": "Crawl any documentation site and generate a docs plugin (requires Python + Playwright)",
       "version": "1.0.0",
       "author": {
-        "name": "eneko-codes"
+        "name": "knowledge"
       },
       "source": "./plugins/doc-indexer",
       "category": "development",

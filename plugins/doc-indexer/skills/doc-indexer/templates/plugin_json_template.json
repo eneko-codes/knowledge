@@ -3,7 +3,7 @@
   "description": "{library_name_title} documentation reference ({version})",
   "version": "{version}",
   "author": {
-    "name": "eneko-codes"
+    "name": "knowledge"
   },
   "homepage": "{source_url}",
   "keywords": ["documentation", "{library_name}", "reference"]
