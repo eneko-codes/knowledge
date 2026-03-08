@@ -317,7 +317,7 @@ def generate_plugin_json(plugin_name, library_name, version, source_url):
     This is the plugin metadata file that Claude Code reads to identify and
     load the plugin. It must contain name, description, version, and author.
     Uses plugin_name (version-aware) for the "name" field so versioned plugins
-    have distinct identities (e.g., "docs-laravel-11" vs "docs-laravel-12").
+    have distinct identities (e.g., "laravel-11-docs" vs "laravel-12-docs").
     """
     template = load_template("plugin_json_template.json")
     return render_template(
@@ -351,15 +351,16 @@ def build_plugin(args):
     version = args.version
     source_url = args.source_url
 
-    # Version-aware naming: when version is not "latest", append it to the
-    # plugin name and skill name so multiple versions can coexist.
-    # e.g., "laravel" + "11" → plugin "docs-laravel-11", skill "laravel-11-docs"
-    # e.g., "laravel" + "latest" → plugin "docs-laravel", skill "laravel-docs"
+    # Version-aware naming: when version is not "latest", insert it between
+    # the library name and the "-docs" suffix so multiple versions can coexist.
+    # e.g., "laravel" + "11" → plugin "laravel-11-docs", skill "laravel-11-docs"
+    # e.g., "laravel" + "latest" → plugin "laravel-docs", skill "laravel-docs"
+    # This groups versions alphabetically (laravel-11-docs, laravel-12-docs).
     if version and version != "latest":
-        plugin_name = f"docs-{library}-{version}"
+        plugin_name = f"{library}-{version}-docs"
         versioned_library = f"{library}-{version}"
     else:
-        plugin_name = f"docs-{library}"
+        plugin_name = f"{library}-docs"
         versioned_library = library
 
     # Default output location: alongside other plugins in the monorepo.

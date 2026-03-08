@@ -6,13 +6,13 @@
   },
   "plugins": [
     {
-      "name": "docs-goose",
+      "name": "goose-docs",
       "description": "Goose (Go database migration tool) documentation reference",
       "version": "1.0.0",
       "author": {
         "name": "eneko-codes"
       },
-      "source": "./plugins/docs-goose",
+      "source": "./plugins/goose-docs",
       "category": "development",
       "keywords": ["documentation", "goose", "go", "migrations", "database"]
     },

@@ -12,7 +12,7 @@ Complete reference for Goose, extracted from the official documentation.
 
 - **Source:** https://pressly.github.io/goose/
 - **Version:** latest
-- **Plugin name:** docs-goose
+- **Plugin name:** goose-docs
 - **Total pages:** 29
 
 ## Directory Structure

@@ -22,10 +22,10 @@ No API calls. No latency. No setup.
 
 | Plugin | Library | Pages |
 |:-------|:--------|------:|
-| `docs-goose` | [Goose](https://pressly.github.io/goose/) — Go database migrations | 29 |
+| `goose-docs` | [Goose](https://pressly.github.io/goose/) — Go database migrations | 29 |
 
 ```bash
-claude /plugin install docs-goose@knowledge
+claude /plugin install goose-docs@knowledge
 ```
 
 > **Don't see your library?** [Request it](https://github.com/eneko-codes/knowledge/issues/new?template=doc-request.yml) — no setup needed, just fill out the form.
@@ -43,7 +43,7 @@ claude /plugin marketplace add https://github.com/eneko-codes/knowledge
 **2. Install a docs plugin**
 
 ```bash
-claude /plugin install docs-goose@knowledge
+claude /plugin install goose-docs@knowledge
 ```
 
 **3. Ask Claude**
@@ -61,8 +61,8 @@ That's it. Claude reads the docs from local files — instant answers, works off
 Multiple versions of the same library coexist side by side:
 
 ```bash
-claude /plugin install docs-laravel-11@knowledge
-claude /plugin install docs-laravel-12@knowledge
+claude /plugin install laravel-11-docs@knowledge
+claude /plugin install laravel-12-docs@knowledge
 ```
 
 Claude picks the right version based on context, or you can ask about a specific one.
@@ -199,7 +199,7 @@ python3 extract.py /tmp/goose-sitemap.json \
 python3 build_plugin.py goose /tmp/goose-extracted/ \
   --source-url https://pressly.github.io/goose/
 
-python3 validate.py ../../../../../../plugins/docs-goose/ \
+python3 validate.py ../../../../../../plugins/goose-docs/ \
   --sitemap /tmp/goose-sitemap.json
 ```
 
@@ -218,7 +218,7 @@ python extract.py $env:TEMP\goose-sitemap.json `
 python build_plugin.py goose $env:TEMP\goose-extracted\ `
   --source-url https://pressly.github.io/goose/
 
-python validate.py ..\..\..\..\..\..\plugins\docs-goose\ `
+python validate.py ..\..\..\..\..\..\plugins\goose-docs\ `
   --sitemap $env:TEMP\goose-sitemap.json
 ```
 

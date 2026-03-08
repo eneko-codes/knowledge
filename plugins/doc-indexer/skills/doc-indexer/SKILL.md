@@ -34,7 +34,7 @@ Ask the user for:
 - **Path prefix restriction** — whether to restrict crawling to the URL path prefix (default: yes)
 - **Version label** — documentation version if applicable (default: `latest`)
 
-**Versioning:** When the user specifies a version other than `latest`, the generated plugin includes the version in its name. For example, `laravel` version `11` produces plugin `docs-laravel-11` with skill `laravel-11-docs`. This allows multiple versions to coexist — the user can have `docs-laravel-11` and `docs-laravel-12` installed simultaneously. Always ask about version when the documentation URL contains a version indicator (e.g., `/v2/`, `/11.x/`, `/en/stable/`).
+**Versioning:** When the user specifies a version other than `latest`, the generated plugin includes the version in its name. For example, `laravel` version `11` produces plugin `laravel-11-docs` with skill `laravel-11-docs`. This allows multiple versions to coexist — the user can have `laravel-11-docs` and `laravel-12-docs` installed simultaneously. Always ask about version when the documentation URL contains a version indicator (e.g., `/v2/`, `/11.x/`, `/en/stable/`).
 
 ### Step 2: Crawl Documentation Pages
 
@@ -115,24 +115,24 @@ Add the new plugin to the root `marketplace.json`. Use the versioned plugin name
 
 ```json
 {
-  "name": "docs-<library>-<version>",
+  "name": "<library>-<version>-docs",
   "description": "<Library> (<version>) documentation reference",
   "version": "1.0.0",
   "author": { "name": "eneko-codes" },
-  "source": "./plugins/docs-<library>-<version>",
+  "source": "./plugins/<library>-<version>-docs",
   "category": "development",
   "keywords": ["documentation", "<library>"]
 }
 ```
 
-For `latest` version, omit the version suffix (e.g., `docs-<library>`).
+For `latest` version, omit the version (e.g., `<library>-docs`).
 
 Report the final results to the user:
 - Total pages indexed
 - Plugin name (including version if applicable)
 - Plugin directory location
 - Any warnings or manual fixes applied
-- Suggest testing with: `claude /plugin install docs-<library>-<version>@knowledge`
+- Suggest testing with: `claude /plugin install <library>-<version>-docs@knowledge`
 
 ## Script Reference
 
