@@ -1,0 +1,9 @@
+{
+  "name": "doc-scanner",
+  "description": "Scans external documentation and generates hierarchical documentation plugins",
+  "version": "1.0.0",
+  "author": {
+    "name": "Eneko"
+  },
+  "keywords": ["documentation", "crawler", "plugin-generator", "docs"]
+}

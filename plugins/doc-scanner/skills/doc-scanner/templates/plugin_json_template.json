@@ -1,0 +1,10 @@
+{
+  "name": "docs-{library_name}",
+  "description": "{library_name_title} documentation reference",
+  "version": "{version}",
+  "author": {
+    "name": "Eneko"
+  },
+  "homepage": "{source_url}",
+  "keywords": ["documentation", "{library_name}", "reference"]
+}
