@@ -225,7 +225,9 @@ crawl.py  ──>  extract.py  ──>  [Claude reviews & filters]  ──>  bui
 
 **`build_plugin.py`** — Groups filtered pages into `api/`, `concepts/`, `examples/`, `warnings/`. Generates SKILL.md index with quick reference for top API functions.
 
-**`validate.py`** — 7 checks: plugin.json fields, SKILL.md frontmatter, page count, section coverage (>= 90%), link resolution (100%), no empty files.
+**`validate.py`** — Structural checks: plugin.json fields, SKILL.md frontmatter, file paths resolve, no empty files.
+
+**`verify.py`** — Accuracy check: re-visits every source URL with Playwright, compares title, heading count, code block count, and content length against the generated markdown. Takes screenshots of mismatched pages for manual inspection.
 
 </details>
 
