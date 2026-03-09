@@ -272,21 +272,17 @@ Do not proceed to Step 7 until all mismatches are resolved or accepted by the us
 
 ### Step 7: Install and Finalize
 
-After building and validating, install the plugin at the chosen scope.
+After building and validating, register the plugin by adding it to the appropriate settings.json file. You cannot use `claude /plugin install` from inside a Claude Code session (nested sessions are not allowed), so you must edit the settings file directly.
 
-**Project scope** (shared with team via git):
+**User scope** — add to `~/.claude/settings.json`:
 
-```bash
-claude /plugin install <name>-docs --scope project
-```
+Read the file, then add `"<name>-docs": true` to the `enabledPlugins` object. If `enabledPlugins` doesn't exist, create it.
 
-The plugin directory at `<project-root>/.claude/plugins/<name>-docs/` should be committed to git so teammates get it automatically.
+**Project scope** — add to `<project-root>/.claude/settings.json`:
 
-**User scope** (available across all your projects):
+Read the file (create it if it doesn't exist), then add `"<name>-docs": true` to the `enabledPlugins` object. The plugin directory at `<project-root>/.claude/plugins/<name>-docs/` should be committed to git so teammates get it automatically.
 
-```bash
-claude /plugin install <name>-docs --scope user
-```
+**Important:** If the project has a project-level settings.json that sets other plugins to `false`, the new plugin must be explicitly set to `true` there as well, or it will be implicitly disabled.
 
 Report the final results to the user:
 
