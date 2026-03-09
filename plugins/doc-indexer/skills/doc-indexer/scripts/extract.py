@@ -107,9 +107,49 @@ STRIP_SELECTORS = [
     ".tabs",                 # Tab navigation bar (Pest/PHPUnit code tabs)
     ".tab-list",             # Alternative tab list class
     "[role='tablist']",      # ARIA role for tab navigation lists
-    ".line-number",          # Torchlight/syntax highlighter line numbers
-    ".torchlight-copy-target",  # Torchlight duplicate plain-text copy target
 ]
+
+# JavaScript injected into the live page to clean code blocks before HTML extraction.
+# Uses computed styles (not class names) to generically catch noise from any syntax
+# highlighting library — Torchlight, Prism, highlight.js, Shiki, Pygments, etc.
+#
+# Three cleaning passes:
+# 1. Remove invisible/decorative elements inside <pre> (line numbers, copy targets,
+#    annotation anchors) detected via computed CSS: display:none, visibility:hidden,
+#    user-select:none, or aria-hidden="true".
+# 2. Unwrap div-per-line wrappers (Torchlight, Docusaurus) that cause markdownify to
+#    emit double blank lines between every line of code. Only triggers when ALL direct
+#    children of <code> are <div> elements — a clear div-per-line structure.
+# 3. Expand <details> elements so collapsed content is visible.
+JS_CLEAN_CODE_BLOCKS = """
+(() => {
+    // Pass 1: Remove hidden/decorative elements inside <pre>
+    document.querySelectorAll('pre').forEach(pre => {
+        pre.querySelectorAll('*').forEach(el => {
+            const s = window.getComputedStyle(el);
+            if (s.display === 'none' ||
+                s.visibility === 'hidden' ||
+                s.userSelect === 'none' ||
+                el.getAttribute('aria-hidden') === 'true') {
+                el.remove();
+            }
+        });
+    });
+    // Pass 2: Unwrap div-per-line wrappers inside <code>
+    document.querySelectorAll('pre code').forEach(code => {
+        const ch = [...code.children];
+        if (ch.length > 0 && ch.every(c => c.tagName === 'DIV')) {
+            ch.forEach(div => {
+                while (div.firstChild) code.insertBefore(div.firstChild, div);
+                code.insertBefore(document.createTextNode('\\n'), div);
+                div.remove();
+            });
+        }
+    });
+    // Pass 3: Expand <details> elements
+    document.querySelectorAll('details').forEach(d => d.open = true);
+})()
+"""
 
 
 def find_main_content(soup):
@@ -588,14 +628,18 @@ def extract_page(page_obj, url, guess_languages=False):
 
     Returns a dict with all extracted data, ready to be written as JSON.
     """
-    # Step 0: Expand hidden content via JavaScript BEFORE capturing HTML.
-    # Many doc sites use <details>/<summary> for collapsible sections.
-    # Expanding them in the live DOM ensures their content is visible to
-    # both Playwright's rendered HTML and our BeautifulSoup extraction.
+    # Step 0: Clean the live DOM via JavaScript BEFORE capturing HTML.
+    # This single injection handles three things:
+    # 1. Removes invisible/decorative elements inside <pre> (line numbers, copy
+    #    targets, annotation anchors) using computed styles — works generically
+    #    across all syntax highlighting libraries without knowing class names.
+    # 2. Unwraps div-per-line wrappers (Torchlight, Docusaurus) that cause
+    #    markdownify to emit double blank lines between every code line.
+    # 3. Expands <details> elements so collapsed content is visible.
     try:
-        page_obj.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+        page_obj.evaluate(JS_CLEAN_CODE_BLOCKS)
     except Exception:
-        pass  # Non-critical — we also expand via BeautifulSoup below as fallback
+        pass  # Non-critical — BeautifulSoup fallback handles <details> below
 
     html = page_obj.content()
     # lxml is faster than html.parser and more lenient with malformed HTML
