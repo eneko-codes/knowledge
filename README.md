@@ -108,6 +108,8 @@ That's it. Claude reads the docs from local files — instant answers, no extra 
 > ```
 >
 > Without this, Claude may rely on training data instead of the indexed docs. The instruction ensures Claude reaches for the skill first — giving you accurate, version-specific answers every time.
+>
+> We also recommend disabling other documentation MCP servers you might be using, as they can compete with the docs skill and add unnecessary tool call overhead.
 
 ### Versioned documentation
 
