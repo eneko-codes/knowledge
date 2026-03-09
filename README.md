@@ -259,10 +259,13 @@ playwright install chromium
 
 <br>
 
-```
-crawl.py  ──>  extract.py  ──>  [Claude reviews & filters]  ──>  build_plugin.py  ──>  validate.py  ──>  verify.py
- (URLs)        (markdown)       (user picks topics,                (plugin files)       (structure)       (accuracy)
-                                 noise removed)
+```mermaid
+flowchart LR
+    A["crawl.py<br/><small>URLs</small>"] --> B["extract.py<br/><small>Markdown</small>"]
+    B --> C["Claude review<br/><small>User picks topics,<br/>noise removed</small>"]
+    C --> D["build_plugin.py<br/><small>Plugin files</small>"]
+    D --> E["validate.py<br/><small>Structure</small>"]
+    E --> F["verify.py<br/><small>Accuracy</small>"]
 ```
 
 **`crawl.py`** — Stealth Chromium browser with anti-fingerprint patches. BFS-crawls from the root URL. Outputs `sitemap.json` with titles, headings, and status for every page.
