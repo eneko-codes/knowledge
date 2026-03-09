@@ -112,7 +112,7 @@ Which topics do you want to include? (e.g., "1, 2, 3, 5, 9" or "all")
 
 Group pages by topic/module by analyzing their URL paths and titles. Present as a numbered list so the user can pick by number.
 
-**4b. If fewer than 50 pages:** Skip the topic selection — include everything. Just proceed to the quality filter.
+**4b. Wait for the user's response.** Do not proceed until the user confirms which topics to include.
 
 **4c. Apply quality filter.**
 

@@ -97,7 +97,7 @@ Claude runs a 7-step pipeline:
 1. **Crawl** — visits every page on the docs site using a stealth Chromium browser
 2. **Extract** — converts each page to structured markdown with code blocks preserved
 3. **Summarize** — shows you what was found, grouped by topic
-4. **You choose** — for large sites (50+ pages), you pick which topics to include. For small sites, everything is included automatically
+4. **You choose** — you pick which topics to include from a numbered list
 5. **Filter** — Claude reviews each page and removes noise (blog posts, archive listings, empty pages). You approve the final list before proceeding
 6. **Build** — assembles the filtered content into a hierarchical plugin with an index
 7. **Validate** — checks that nothing was lost (page count, section coverage, link resolution)
