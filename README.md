@@ -9,13 +9,56 @@ and navigates directly to the right file. No searching, no guessing.
 
 No extra API calls. No latency. Pre-built docs ready to install, or index your own in minutes.
 
+[Why Skills?](#why-skills-instead-of-mcp) ·
 [Available Docs](#available-documentation) ·
 [Install](#installation) ·
-[Request Docs](#request-a-library) ·
-[Index Your Own](#index-your-own-docs) ·
-[Why Skills?](#why-skills-instead-of-mcp)
+[Index Your Own](#index-your-own-docs)
 
 </div>
+
+---
+
+## Why Skills Instead of MCP?
+
+Claude Code can access docs three ways: **WebFetch** fetches pages directly from the web, **MCP servers** (like [Context7](https://github.com/upstash/context7) or [docs-mcp-server](https://github.com/arabold/docs-mcp-server)) expose a search API over pre-indexed docs, and **skills** (this project) give Claude a local file-based index it can navigate directly.
+
+<table>
+<tr><th width="33%">WebFetch</th><th width="33%">MCP Doc Servers</th><th width="33%">Skills (this project)</th></tr>
+<tr>
+<td>
+
+**Direct fetch** — Claude fetches a documentation URL and reads the page content.
+
+- Must know or find the correct URL first
+- Gets full page content including navigation and UI noise
+- One network request per page
+- No setup required
+
+</td>
+<td>
+
+**Search API** — Claude sends a query to the MCP server, which returns matching results from pre-indexed docs.
+
+- Results depend on query and indexing quality
+- May need multiple search-refine cycles
+- Requires running an MCP server
+- Token overhead per tool call (schema + protocol)
+
+</td>
+<td>
+
+**Local index** — Claude reads SKILL.md which lists every available page, then reads the target file directly.
+
+- Sees all available pages upfront via the index
+- Picks the right file from the table of contents
+- Two file reads: index + target page
+- No network requests, no server to run
+
+</td>
+</tr>
+</table>
+
+> **Trade-off:** One-time crawl (5–30 min) to generate the plugin. Re-crawl when docs update — monthly is usually enough.
 
 ---
 
@@ -25,7 +68,7 @@ No extra API calls. No latency. Pre-built docs ready to install, or index your o
 |:-------|:--------|------:|
 | *coming soon* | Laravel, React, Go | — |
 
-> **Don't see your library?** [Request it](https://github.com/eneko-codes/knowledge/issues/new?template=doc-request.yml) — no setup needed, just fill out the form. Or [index your own](#index-your-own-docs) in minutes.
+> **Don't see your library?** [Index your own](#index-your-own-docs) in minutes, or [request it](https://github.com/eneko-codes/knowledge/issues/new?template=doc-request.yml) and we'll add it to the marketplace.
 
 ---
 
@@ -74,12 +117,6 @@ claude /plugin install laravel-12-docs@knowledge
 ```
 
 Claude picks the right version based on context, or you can ask about a specific one.
-
----
-
-## Request a Library
-
-Want docs for a library that isn't listed? **[Open a request](https://github.com/eneko-codes/knowledge/issues/new?template=doc-request.yml)** with the library name and documentation URL. No tooling needed on your end — we'll index it and add it to the marketplace.
 
 ---
 
@@ -309,42 +346,6 @@ python3 verify.py <plugin-dir> [options]
 **Windows: `source` not found** — Use PowerShell: `.\.venv\Scripts\Activate.ps1`. If blocked: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
 </details>
-
----
-
-## Why Skills Instead of MCP?
-
-Claude Code can access docs two ways: **MCP servers** (like [Context7](https://github.com/upstash/context7) or [docs-mcp-server](https://github.com/arabold/docs-mcp-server)) expose a search API, while **skills** give Claude a complete file-based index it can navigate directly.
-
-Both approaches pre-index documentation. The difference is **how Claude finds what it needs**:
-
-<table>
-<tr><th width="50%">MCP Doc Servers</th><th width="50%">Skills (this project)</th></tr>
-<tr>
-<td>
-
-**Blind search** — Claude formulates a query, calls the search tool, reviews results, and may need to refine and search again. Multiple round-trips if the first query misses.
-
-- LLM must guess the right search terms
-- Results depend on query quality
-- May need multiple search → refine cycles
-- Token cost per tool call (schema + protocol)
-
-</td>
-<td>
-
-**Direct navigation** — Claude reads SKILL.md which lists every available page. It sees the full table of contents and navigates directly to the right file.
-
-- LLM sees all available content upfront
-- No guessing — picks the right file from the index
-- Two reads: index + target file
-- No tool call overhead — just file reads
-
-</td>
-</tr>
-</table>
-
-> **Trade-off:** One-time crawl (5–30 min) to generate the plugin. Re-crawl when docs update — monthly is usually enough.
 
 ---
 
