@@ -341,13 +341,11 @@ python3 verify.py <plugin-dir> [options]
 
 <br>
 
-**Playwright fails to install Chromium** — Ensure internet access and ~200MB disk space. On Linux: `sudo npx playwright install-deps chromium`
+**Playwright fails to install Chromium** — Ensure internet access and ~200MB disk space.
 
 **Crawl gets blocked (403/429)** — Increase the delay: `python3 crawl.py <url> --delay 3.0`
 
 **Empty markdown extraction** — The content area heuristic may not match the site's HTML. Open an issue with the URL.
-
-**Windows: `source` not found** — Use PowerShell: `.\.venv\Scripts\Activate.ps1`. If blocked: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
 </details>
 
