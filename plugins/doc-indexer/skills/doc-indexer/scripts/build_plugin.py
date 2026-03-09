@@ -203,30 +203,6 @@ def generate_section_file(page, library_name):
     )
 
 
-def generate_warnings_file(pages):
-    """Generate a consolidated WARNINGS.md from all pages classified as "warning".
-
-    Rather than creating one file per warning page, we consolidate all deprecation
-    notices into a single WARNINGS.md. This makes it easy for Claude to scan all
-    warnings at once when a user asks about deprecated features.
-    """
-    lines = ["# Warnings and Deprecation Notices\n"]
-    for page in pages:
-        title = page.get("title", "Untitled")
-        url = page.get("url", "")
-        warnings = page.get("warnings", [])
-        lines.append(f"\n## {title}\n")
-        lines.append(f"Source: {url}\n")
-        if warnings:
-            for w in warnings:
-                lines.append(f"- {w}")
-        # Include full markdown for context — warnings often need surrounding
-        # text to understand the migration path or replacement API.
-        markdown = page.get("markdown", "")
-        if markdown:
-            lines.append(f"\n{markdown}")
-    return "\n".join(lines)
-
 
 def generate_sitemap(pages, library_name):
     """Generate index/SITEMAP.md — a complete listing of all documentation pages.
@@ -410,19 +386,9 @@ def build_plugin(args):
         content_dir = skill_dir / output_subdir
         content_dir.mkdir(parents=True, exist_ok=True)
 
-        # Warning pages get consolidated into a single WARNINGS.md rather than
-        # individual files, because deprecation info is most useful when viewed together.
-        if category == "warning":
-            warnings_content = generate_warnings_file(cat_pages)
-            warnings_path = content_dir / "WARNINGS.md"
-            warnings_path.write_text(warnings_content, encoding="utf-8")
-            rel_path = f"{output_subdir}/WARNINGS.md"
-            file_listing_lines.append(f"- `{rel_path}` — Deprecation notices and warnings")
-            written_files.append(rel_path)
-            log.info(f"  Wrote {warnings_path}")
-            continue
-
-        # For all other categories: one markdown file per extracted page
+        # Every category gets one markdown file per extracted page — including
+        # warnings. Previously warnings were consolidated into a single WARNINGS.md
+        # but this produced unreadably large files (386KB+) and broke SITEMAP links.
         for page in cat_pages:
             title = page.get("title", "Untitled")
             filename = sanitize_filename(title) + ".md"

@@ -301,39 +301,55 @@ def classify_page(title, headings, code_blocks, markdown_text):
     code_len = sum(len(b["content"]) for b in code_blocks)
     code_ratio = code_len / max(text_len, 1)  # max(_, 1) prevents division by zero
 
-    # Score each category by counting how many indicator phrases appear in the text.
-    # Each indicator is a lowercase phrase that's characteristic of that page type.
+    # --- Warning detection (strict) ---
+    # Only classify as "warning" if the PAGE TITLE explicitly indicates it's a
+    # deprecation/upgrade page. Body text mentioning "deprecated" is NOT sufficient —
+    # many normal doc pages mention deprecated features in passing.
+    warning_title_indicators = ["deprecat", "breaking change", "upgrade guide",
+                                "migration guide", "end of life", "removed in"]
+    is_warning_title = any(ind in title_lower for ind in warning_title_indicators)
+    if is_warning_title:
+        return "warning"
 
-    api_indicators = ["api reference", "api documentation", "function reference", "method reference",
-                      "class reference", "type reference", "parameters", "returns", "arguments"]
-    api_score = sum(1 for ind in api_indicators if ind in text_lower)
+    # --- Tutorial detection ---
+    # Title-weighted: "getting started", "tutorial", "installation" in the title
+    # are strong signals. Body keywords are weaker.
+    tutorial_title_indicators = ["getting started", "tutorial", "walkthrough",
+                                "quickstart", "quick start", "installation", "how to"]
+    tutorial_body_indicators = ["step 1", "step 2", "tutorial", "walkthrough",
+                               "quickstart", "quick start", "how to", "guide"]
+    tutorial_title_score = sum(3 for ind in tutorial_title_indicators if ind in title_lower)
+    tutorial_body_score = sum(1 for ind in tutorial_body_indicators if ind in text_lower)
+    tutorial_score = tutorial_title_score + tutorial_body_score
+    if tutorial_score >= 3:
+        return "tutorial"
 
-    tutorial_indicators = ["step 1", "step 2", "getting started", "tutorial", "walkthrough",
-                          "quickstart", "quick start", "how to", "guide"]
-    tutorial_score = sum(1 for ind in tutorial_indicators if ind in text_lower)
+    # --- API reference detection ---
+    # Title-weighted: "reference", "api" in title are strong signals.
+    # Also triggered by high function signature density.
+    api_title_indicators = ["reference", "api", "helpers", "collections"]
+    api_body_indicators = ["api reference", "api documentation", "function reference",
+                          "method reference", "class reference", "type reference",
+                          "parameters", "returns", "arguments", "endpoint",
+                          "request", "response", "schema"]
+    api_title_score = sum(3 for ind in api_title_indicators if ind in title_lower)
+    api_body_score = sum(1 for ind in api_body_indicators if ind in text_lower)
+    api_score = api_title_score + api_body_score
+    if api_score >= 4 or (code_ratio > 0.3 and any(extract_signatures([b]) for b in code_blocks)):
+        return "api-reference"
 
+    # --- Example detection ---
+    # Pages dominated by code with minimal prose.
+    if code_ratio > 0.6 and tutorial_score < 3:
+        return "example"
+
+    # --- Conceptual detection ---
     concept_indicators = ["overview", "introduction", "concept", "architecture", "design",
                          "explanation", "understanding", "background"]
     concept_score = sum(1 for ind in concept_indicators if ind in text_lower)
-
-    warning_indicators = ["deprecated", "breaking change", "migration", "upgrade", "removed in",
-                         "no longer supported", "end of life"]
-    warning_score = sum(1 for ind in warning_indicators if ind in text_lower)
-
-    # Classification priority: warnings > examples > api-reference > tutorial > conceptual.
-    # Warnings come first because deprecation notices can appear on any page type.
-    if warning_score >= 2:
-        return "warning"
-    # High code ratio without tutorial markers = example/sample code page
-    if code_ratio > 0.6 and tutorial_score < 2:
-        return "example"
-    # API reference: either keyword-heavy or moderate code with actual signatures
-    if api_score >= 2 or (code_ratio > 0.3 and any(extract_signatures([b]) for b in code_blocks)):
-        return "api-reference"
-    if tutorial_score >= 2:
-        return "tutorial"
     if concept_score >= 1:
         return "conceptual"
+
     # Final fallback based on code density
     if code_ratio > 0.4:
         return "example"
@@ -476,6 +492,34 @@ def extract_page(page_obj, url, converter):
     # Step 3: Convert the cleaned HTML to markdown
     content_html = str(content_el)
     markdown = converter.handle(content_html).strip()
+
+    # Step 3b: Fix code blocks — html2text outputs [code]...[/code] markers instead
+    # of proper markdown fenced blocks (```). We replace them using the code_blocks
+    # we already extracted (which have language annotations from CSS classes).
+    # Also handles duplicated content: some sites (e.g., Laravel) render code blocks
+    # with both line-numbered and plain versions. The clean version is after the
+    # first \n in each code_block's content.
+    code_tag_pattern = re.compile(r'\[code\]\s*\n(.*?)\[/code\]', re.DOTALL)
+    code_matches = list(code_tag_pattern.finditer(markdown))
+    if code_matches and code_blocks:
+        # Replace from end to start to preserve string positions
+        for i in range(min(len(code_matches), len(code_blocks)) - 1, -1, -1):
+            match = code_matches[i]
+            cb = code_blocks[i]
+            content = cb["content"]
+            lang = cb.get("language", "")
+
+            # Extract the clean version — after the first \n, which separates
+            # the line-numbered duplicate from the plain version
+            first_nl = content.find("\n")
+            if first_nl >= 0:
+                clean = content[first_nl + 1:]
+            else:
+                clean = content
+
+            clean = clean.rstrip()
+            fence = f"```{lang}\n{clean}\n```"
+            markdown = markdown[:match.start()] + fence + markdown[match.end():]
 
     # Clean up: collapse runs of 4+ blank lines to 3 (keeps readability without waste)
     markdown = re.sub(r"\n{4,}", "\n\n\n", markdown)

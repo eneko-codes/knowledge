@@ -231,22 +231,9 @@ def check_page_count(sitemap, md_files, skill_dir, result):
     content_files = {k: v for k, v in md_files.items() if not k.startswith("index/")}
     content_count = len(content_files)
 
-    # Warning pages get consolidated into a single WARNINGS.md by build_plugin.py,
-    # so the file count will be lower than the sitemap page count. We detect this
-    # by checking if WARNINGS.md exists (indicating consolidation happened).
-    # The actual number of consolidated pages = (sitemap_pages - content_count),
-    # which is valid as long as WARNINGS.md accounts for the difference.
-    has_warnings_file = (skill_dir / "warnings" / "WARNINGS.md").exists()
-
-    # Allow the difference if a WARNINGS.md exists (pages were consolidated)
-    # or if there are pages with "warning" in the title (title-based heuristic)
-    warning_slack = 0
-    if has_warnings_file:
-        # The difference between sitemap pages and content files is the number
-        # of pages that were consolidated into WARNINGS.md (minus 1 for the file itself)
-        warning_slack = max(0, sitemap_pages - content_count)
-
-    if content_count >= sitemap_pages - warning_slack:
+    # Simple count comparison — each page in the sitemap should have a
+    # corresponding content file. Warning pages are no longer consolidated.
+    if content_count >= sitemap_pages:
         result.add_check(
             "Page count matches",
             True,

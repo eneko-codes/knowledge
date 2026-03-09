@@ -132,43 +132,59 @@ def extract_live_signals(page):
     """Extract key signals from a live rendered page for comparison.
 
     Uses JavaScript evaluation in the browser to get the same signals
-    we extract from markdown, but from the actual rendered DOM.
+    we extract from markdown, but ONLY from the main content area.
+
+    IMPORTANT: This must use the same content area selectors as extract.py's
+    find_main_content(). Previously, headings and code blocks were counted
+    from the full page (including sidebar/nav), causing systematic false
+    mismatches because extract.py correctly strips those elements.
     """
-    # Extract title from first H1 or document.title
-    title = page.evaluate("""() => {
-        const h1 = document.querySelector('h1');
-        if (h1) return h1.textContent.trim().replace(/\\s+/g, ' ');
-        return document.title || '';
-    }""")
+    # All signals are extracted from the main content area only.
+    # The selector list matches extract.py's CONTENT_SELECTORS.
+    signals = page.evaluate("""() => {
+        const selectors = [
+            'main', 'article', '[role="main"]', '#content', '#main-content',
+            '.content', '.docs-content', '.doc-content', '.markdown-body',
+            '.documentation', '.post-content', '.page-content',
+            '.article-content', '.rst-content', '.md-content'
+        ];
 
-    # Count all headings (H1-H6)
-    heading_count = page.evaluate("""() => {
-        return document.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
-    }""")
-
-    # Count code blocks (<pre> elements, which is how code blocks render in HTML)
-    code_block_count = page.evaluate("""() => {
-        return document.querySelectorAll('pre').length;
-    }""")
-
-    # Get visible text length of the main content area.
-    # Try common content selectors, fall back to body.
-    text_length = page.evaluate("""() => {
-        const selectors = ['main', 'article', '[role="main"]', '#content', '.content', '.docs-content'];
+        // Find the main content element (same logic as extract.py)
+        let contentEl = null;
         for (const sel of selectors) {
             const el = document.querySelector(sel);
             if (el && el.textContent.trim().length > 100) {
-                return el.textContent.trim().length;
+                contentEl = el;
+                break;
             }
         }
-        return document.body ? document.body.textContent.trim().length : 0;
+        if (!contentEl) {
+            contentEl = document.body || document.documentElement;
+        }
+
+        // Extract title from first H1 within content area, or document.title
+        const h1 = contentEl.querySelector('h1');
+        const title = h1
+            ? h1.textContent.trim().replace(/\\s+/g, ' ')
+            : (document.title || '');
+
+        // Count headings WITHIN the content area only
+        const headingCount = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+
+        // Count code blocks WITHIN the content area only
+        const codeBlockCount = contentEl.querySelectorAll('pre').length;
+
+        // Text length of the content area
+        const textLength = contentEl.textContent.trim().length;
+
+        return { title, headingCount, codeBlockCount, textLength };
     }""")
 
     return {
-        "title": title,
-        "heading_count": heading_count,
-        "code_block_count": code_block_count,
-        "text_length": text_length,
+        "title": signals["title"],
+        "heading_count": signals["headingCount"],
+        "code_block_count": signals["codeBlockCount"],
+        "text_length": signals["textLength"],
     }
 
 
