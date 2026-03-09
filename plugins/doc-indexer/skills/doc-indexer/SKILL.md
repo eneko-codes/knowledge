@@ -277,6 +277,16 @@ Report the final results to the user:
 - Plugin directory location
 - Scope and what that means for visibility
 
+**Clean up temporary files** after the user confirms everything looks good:
+
+```bash
+rm -f /tmp/<library>-sitemap.json
+rm -rf /tmp/<library>-extracted/
+rm -rf /tmp/<library>-screenshots/
+```
+
+Do not clean up until the user has confirmed the plugin is working. They may want to re-extract or re-verify.
+
 ## Script Reference
 
 All scripts are in `{PLUGIN_ROOT}/scripts/`:
