@@ -1,10 +1,10 @@
 ---
 name: doc-indexer
 description: >
-  Use when asked to index documentation, generate a docs plugin, crawl documentation,
-  index library docs, create a documentation plugin, or build docs for a library.
-  Trigger phrases: "index documentation", "generate docs plugin", "crawl documentation",
-  "index library docs", "create docs plugin", "build docs for".
+  Use when asked to index documentation, generate a docs skill, crawl documentation,
+  index library docs, create a documentation skill, or build docs for a library.
+  Trigger phrases: "index documentation", "generate docs skill", "crawl documentation",
+  "index library docs", "create docs skill", "build docs for", "index docs".
 ---
 
 # Doc Indexer
@@ -45,7 +45,7 @@ Is this the right URL? Should I restrict crawling to this path?
 
 Do not guess or fabricate URLs. Always search and confirm.
 
-**Versioning:** When the user specifies a version other than `latest`, the generated plugin includes the version in its name. For example, `laravel` version `11` produces plugin `laravel-11-docs` with skill `laravel-11-docs`. This allows multiple versions to coexist — the user can have `laravel-11-docs` and `laravel-12-docs` installed simultaneously. Always ask about version when the documentation URL contains a version indicator (e.g., `/v2/`, `/11.x/`, `/en/stable/`).
+**Versioning:** When the user specifies a version other than `latest`, the generated skill includes the version in its name. For example, `laravel` version `11` produces skill `laravel-11-docs`. This allows multiple versions to coexist — the user can have `laravel-11-docs` and `laravel-12-docs` installed simultaneously. Always ask about version when the documentation URL contains a version indicator (e.g., `/v2/`, `/11.x/`, `/en/stable/`).
 
 **Scope:** The generated documentation skill can be saved at two scopes. Skills placed in `.claude/skills/` directories are auto-discovered by Claude Code — no plugin registration or installation is needed.
 
@@ -98,7 +98,7 @@ Add `--guess-languages` if the site has many unannotated code blocks — this us
 
 ### Step 4: Review and Filter Content
 
-This is the most important step. Read the extracted JSON files and curate the content before building the plugin.
+This is the most important step. Read the extracted JSON files and curate the content before building the skill.
 
 **4a. Summarize what was found.**
 
@@ -171,7 +171,7 @@ Skipped 94 pages:
 - 14 billing pages (user excluded)
 - 50 other low-value pages
 
-Proceed with building the plugin? (yes / show skipped pages / adjust)
+Proceed with building the skill? (yes / show skipped pages / adjust)
 ```
 
 The user can review skipped pages and override if needed. Only proceed when the user confirms.
@@ -265,7 +265,7 @@ Mismatch in pages/configuration.md:
 
 Options:
 1. Keep as-is (partial content is still useful)
-2. Skip this page (remove from plugin)
+2. Skip this page (remove from skill)
 3. Re-extract this specific page
 ```
 
@@ -293,7 +293,7 @@ rm -rf /tmp/<library>-extracted/
 rm -rf /tmp/<library>-screenshots/
 ```
 
-Do not clean up until the user has confirmed the plugin is working. They may want to re-extract or re-verify.
+Do not clean up until the user has confirmed the skill is working. They may want to re-extract or re-verify.
 
 After cleaning temp files, ask the user if they also want to reclaim disk space by removing the Python virtual environment (~50MB) and the Chromium browser binary (~200MB). Explain that these are only needed by doc-indexer, and if deleted, `setup.sh` must be re-run before indexing docs again:
 
@@ -331,8 +331,8 @@ Templates are in `{PLUGIN_ROOT}/templates/`:
 
 | Template                    | Used By           | Purpose                                |
 | --------------------------- | ----------------- | -------------------------------------- |
-| `SKILL_template.md`         | `build_plugin.py` | Generated SKILL.md for the docs plugin |
-| `plugin_json_template.json` | `build_plugin.py` | Generated plugin.json                  |
+| `SKILL_template.md`         | `build_plugin.py` | Generated SKILL.md for the docs skill  |
+| `plugin_json_template.json` | `build_plugin.py` | Generated plugin.json (plugin mode only) |
 | `section_template.md`       | `build_plugin.py` | Individual content sub-files           |
 
 ## Critical Rules
@@ -343,7 +343,7 @@ Templates are in `{PLUGIN_ROOT}/templates/`:
 
 3. **Flag extraction problems.** If a page's markdown looks garbled (broken tables, navigation text mixed with content, truncated code blocks), tell the user: "This page may not have extracted cleanly — here's what it looks like: [excerpt]. Keep, skip, or re-extract?" Never silently include garbled content.
 
-4. **Filter before building.** Always run the review and filter step (Step 4) before building. Never build from unfiltered extracted content — noise degrades the plugin's usefulness.
+4. **Filter before building.** Always run the review and filter step (Step 4) before building. Never build from unfiltered extracted content — noise degrades the skill's usefulness.
 
 5. **User decides what to include.** Present the topic list and filter results to the user. Do not silently skip pages — the user might want content you would have filtered out.
 

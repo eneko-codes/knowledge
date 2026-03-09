@@ -4,13 +4,12 @@
 
 **Index any documentation locally and use it as a Claude Code skill.**
 
-Each plugin is a skill with an index — Claude sees every available page
-and navigates directly to the right file. No searching, no guessing.
+Crawl a docs site, pick the topics you want, and get a local skill
+that Claude navigates directly — no searching, no guessing.
 
-No extra API calls. No latency. Pre-built docs ready to install, or index your own in minutes.
+No extra API calls. No latency. Index your own docs in minutes.
 
 [Benefits](#benefits-of-documentation-skills) ·
-[Pre-built Docs](#pre-built-documentation-skills) ·
 [Install](#installation) ·
 [Index Your Own](#index-your-own-docs)
 
@@ -58,84 +57,34 @@ Claude Code can access docs three ways: **WebFetch** fetches pages directly from
 </tr>
 </table>
 
-> **Trade-off:** One-time crawl (5–30 min) to generate the plugin. Re-crawl when docs update — monthly is usually enough.
-
----
-
-## Pre-built Documentation Skills
-
-Available on the knowledge Claude Code plugin marketplace (see [install](#installation) below).
-
-| Plugin | Library | Pages |
-|:-------|:--------|------:|
-| *coming soon* | Laravel, React, Go | — |
-
-> **Don't see your library?** [Index your own](#index-your-own-docs) in minutes, or [request it](https://github.com/eneko-codes/knowledge/issues/new?template=doc-request.yml) and we'll add it to the marketplace.
+> **Trade-off:** One-time crawl (5-30 min) to generate the skill. Re-crawl when docs update — monthly is usually enough.
 
 ---
 
 ## Installation
 
-**1. Add the marketplace** *(one-time)*
+**Add the marketplace** *(one-time)*
 
 ```bash
 claude /plugin marketplace add https://github.com/eneko-codes/knowledge
 ```
 
-**2. Install a docs plugin**
-
-```bash
-claude /plugin install react-docs@knowledge
-```
-
-**3. Ask Claude**
-
-```
-How do React Server Components work?
-What hooks are available for managing state?
-Show me how to use Suspense for data fetching
-```
-
-That's it. Claude reads the docs from local files — instant answers, no extra network calls.
-
-> [!TIP]
-> **Add a CLAUDE.md instruction so Claude always uses the docs skill.**
->
-> Whether you installed a pre-built plugin or generated one with `doc-indexer`, add a line to your project's `CLAUDE.md` telling Claude to use it:
->
-> ```markdown
-> When working with React, use the react-docs skill to look up documentation.
-> ```
->
-> Without this, Claude may rely on training data instead of the indexed docs. The instruction ensures Claude reaches for the skill first — giving you accurate, version-specific answers every time.
->
-> We also recommend disabling other documentation MCP servers you might be using, as they can compete with the docs skill and add unnecessary tool call overhead.
-
-### Versioned documentation
-
-Multiple versions of the same library coexist side by side:
-
-```bash
-claude /plugin install laravel-11-docs@knowledge
-claude /plugin install laravel-12-docs@knowledge
-```
-
-Claude picks the right version based on context, or you can ask about a specific one.
-
----
-
-## Index Your Own Docs
-
-The `doc-indexer` plugin lets you generate documentation plugins for **any** site — useful for private docs, niche libraries, or libraries not yet in the marketplace.
+Then install the doc-indexer plugin:
 
 ```bash
 claude /plugin install doc-indexer@knowledge
 ```
 
-Then tell Claude:
+That's it. You can now index any documentation site.
+
+---
+
+## Index Your Own Docs
+
+Tell Claude:
 
 ```
-Index the sqlc docs
+Index the React docs
 ```
 
 or with a specific URL:
@@ -155,8 +104,8 @@ Claude runs a 7-step pipeline:
 3. **Summarize** — shows you what was found, grouped by topic
 4. **You choose** — you pick which topics to include from a numbered list
 5. **Filter** — Claude reviews each page and removes noise (blog posts, archive listings, empty pages). You approve the final list before proceeding
-6. **Build** — assembles the filtered content into a plugin with a flat `pages/` directory and a rich SKILL.md index listing sub-topics per file
-7. **Validate** — checks structural integrity, then re-visits every source page and compares against the generated markdown (title, headings, code blocks, content length). Mismatches are flagged with screenshots.
+6. **Build** — assembles the filtered content into a skill with a flat `pages/` directory and a rich SKILL.md index listing sub-topics per file
+7. **Validate** — checks structural integrity, then re-visits every source page and compares against the generated markdown (title, headings, code blocks, content length). Mismatches are flagged with screenshots
 
 Example interaction for a large library:
 
@@ -175,23 +124,42 @@ Topics detected:
 Which topics do you want to include? (e.g., "1, 2, 3, 5" or "all")
 ```
 
-You type `1, 2, 3, 5` and Claude builds a focused plugin with just those topics — no bloat.
+You type `1, 2, 3, 5` and Claude builds a focused skill with just those topics — no bloat.
 
 ### Scope
 
-Choose where to install the generated plugin:
+Choose where to save the generated skill:
 
-| Scope | Who gets the docs | Use when |
-|:------|:------------------|:---------|
-| **project** | Whole team (committed to git) | The library is used by the project |
-| **user** | Just you, all projects | General-purpose library you use everywhere |
+| Scope | Output directory | Who gets the docs | Use when |
+|:------|:-----------------|:------------------|:---------|
+| **project** | `<project>/.claude/skills/<name>-docs/` | Whole team (committed to git) | The library is used by the project |
+| **user** | `~/.claude/skills/<name>-docs/` | Just you, all projects | General-purpose library you use everywhere |
+
+Skills placed in `.claude/skills/` directories are auto-discovered by Claude Code — no registration or installation is needed. Just restart your session.
+
+### Versioned documentation
+
+Multiple versions of the same library coexist side by side. For example, indexing Laravel 11 and Laravel 12 produces separate skills: `laravel-11-docs` and `laravel-12-docs`. Claude picks the right version based on context, or you can ask about a specific one.
+
+> [!TIP]
+> **Add a CLAUDE.md instruction so Claude always uses the docs skill.**
+>
+> Whether you index docs at user scope or project scope, add a line to your project's `CLAUDE.md` telling Claude to use it:
+>
+> ```markdown
+> When working with React, use the react-docs skill to look up documentation.
+> ```
+>
+> Without this, Claude may rely on training data instead of the indexed docs. The instruction ensures Claude reaches for the skill first — giving you accurate, version-specific answers every time.
+>
+> We also recommend disabling other documentation MCP servers you might be using, as they can compete with the docs skill and add unnecessary tool call overhead.
 
 <details>
 <summary><strong>Prerequisites</strong></summary>
 
 <br>
 
-doc-indexer requires **Python 3.8+** and downloads a Chromium browser (~200MB) for crawling. Pre-built docs plugins have **no prerequisites**.
+doc-indexer requires **Python 3.8+** and downloads a Chromium browser (~200MB) for crawling.
 
 **macOS** — Python comes pre-installed on macOS 12.3+.
 
@@ -261,7 +229,7 @@ playwright install chromium
 
 ```
 crawl.py  ──>  extract.py  ──>  [Claude reviews & filters]  ──>  build_plugin.py  ──>  validate.py  ──>  verify.py
-(URLs + HTML)   (markdown)       (user picks topics,                (plugin files)       (structure)       (accuracy)
+(URLs + HTML)   (markdown)       (user picks topics,                (skill files)        (structure)       (accuracy)
                                   noise removed)
 ```
 
@@ -271,11 +239,11 @@ crawl.py  ──>  extract.py  ──>  [Claude reviews & filters]  ──>  bui
 
 **Claude review** — Reads extracted content, groups by topic, asks user which topics to keep. Then filters out noise: blog posts, archive listings, empty pages, duplicates. User approves the final list.
 
-**`build_plugin.py`** — Writes all pages into a flat `pages/` directory. Generates SKILL.md index with H2 sub-topic descriptions per file.
+**`build_plugin.py --skill-only`** — Writes all pages into a flat `pages/` directory. Generates SKILL.md index with H2 sub-topic descriptions per file. With `--skill-only`, outputs just the skill directory (SKILL.md + pages/) without a plugin wrapper.
 
-**`validate.py`** — Structural checks: plugin.json fields, SKILL.md frontmatter, file paths resolve, no empty files.
+**`validate.py --skill-only`** — Structural checks: SKILL.md frontmatter, file paths resolve, no empty files.
 
-**`verify.py`** — Accuracy check: re-visits every source URL with Playwright, compares title, heading count, code block count, and content length against the generated markdown. Full-page screenshots of mismatched pages.
+**`verify.py --skill-only`** — Accuracy check: re-visits every source URL with Playwright, compares title, heading count, code block count, and content length against the generated markdown. Full-page screenshots of mismatched pages.
 
 </details>
 
@@ -306,29 +274,32 @@ python3 extract.py <sitemap.json> [options]
   --guess-languages        Use Pygments to guess language for unannotated code blocks
 ```
 
-**build_plugin.py** — Assemble extracted content into a Claude Code plugin
+**build_plugin.py** — Assemble extracted content into a documentation skill
 
 ```
 python3 build_plugin.py <library-name> <extracted-dir> [options]
 
   --version LABEL          Documentation version label (default: latest)
   --source-url URL         Original documentation URL
-  --output-dir DIR         Plugin output directory
+  --output-dir DIR         Skill output directory
+  --skill-only             Output just SKILL.md + pages/ without plugin wrapper
 ```
 
-**validate.py** — Check plugin structural integrity
+**validate.py** — Check skill structural integrity
 
 ```
-python3 validate.py <plugin-dir> [options]
+python3 validate.py <skill-dir> [options]
 
+  --skill-only             Validate a standalone skill directory (no plugin wrapper)
   --sitemap FILE           Cross-reference against original sitemap.json
 ```
 
 **verify.py** — Compare generated content against live source pages
 
 ```
-python3 verify.py <plugin-dir> [options]
+python3 verify.py <skill-dir> [options]
 
+  --skill-only             Verify a standalone skill directory (no plugin wrapper)
   --delay SECS             Base delay between requests (default: 0.5)
   --screenshot-dir DIR     Save full-page screenshots of mismatched pages
 ```

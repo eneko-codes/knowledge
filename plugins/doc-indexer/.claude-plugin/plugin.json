@@ -1,6 +1,6 @@
 {
   "name": "doc-indexer",
-  "description": "Indexes external documentation and generates hierarchical documentation plugins",
+  "description": "Indexes external documentation and generates documentation skills",
   "version": "1.0.0",
   "author": {
     "name": "knowledge"

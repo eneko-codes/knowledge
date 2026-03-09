@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "doc-indexer",
-      "description": "Crawl any documentation site and generate a docs plugin (requires Python + Playwright)",
+      "description": "Crawl any documentation site and generate a docs skill (requires Python + Playwright)",
       "version": "1.0.0",
       "author": {
         "name": "knowledge"
