@@ -288,7 +288,9 @@ python3 build_plugin.py <library-name> <extracted-dir> [options]
 **validate.py** — Check skill structural integrity
 
 ```
-python3 validate.py <skill-dir>
+python3 validate.py <skill-dir> [options]
+
+  --extracted-dir DIR      Cross-reference against filtered extracted JSON files
 ```
 
 **verify.py** — Compare generated content against live source pages

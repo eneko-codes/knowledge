@@ -228,14 +228,19 @@ Replace `<name>-docs` with the versioned name (e.g., `laravel-11-docs` or `react
 Run the validator to check the skill's structural integrity:
 
 ```bash
-python3 validate.py <output-dir>
+python3 validate.py <output-dir> --extracted-dir /tmp/<library>-extracted/
 ```
+
+Pass `--extracted-dir` pointing to the filtered extracted directory (after Step 4e deleted skipped files). This enables content fidelity checks that catch truncated or mangled extractions.
 
 The validator checks:
 
 - SKILL.md has frontmatter and substantial content
 - All file paths in SKILL.md resolve to existing files
 - No empty content files
+- Page count matches extracted files (with `--extracted-dir`)
+- Section coverage: >= 90% of extracted headings appear in the built skill
+- Signature coverage: function-like headings appear in code blocks >= 80%
 
 **Interpret results:**
 
@@ -336,7 +341,7 @@ All scripts are in `{PLUGIN_ROOT}/scripts/`:
 | `extract.py`           | Extract content (Defuddle + trafilatura)     | `<sitemap.json>` `--output` `--force` `--guess-languages`                    |
 | `defuddle_extract.mjs` | Node.js wrapper for Defuddle (called by extract.py) | `<html-file>` `[url]`                                                 |
 | `build_plugin.py`      | Assemble skill from extracted content        | `<library-name>` `<extracted-dir>` `--version` `--source-url` `--output-dir` |
-| `validate.py`          | Verify skill structural integrity            | `<skill-dir>`                                                                |
+| `validate.py`          | Verify skill structural integrity            | `<skill-dir>` `--extracted-dir`                                              |
 | `verify.py`            | Compare generated content against live pages | `<skill-dir>` `--delay` `--screenshot-dir`                                  |
 | `setup.sh`             | Create venv, install Python + Node.js deps   | (none)                                                                       |
 
