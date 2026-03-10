@@ -238,6 +238,15 @@ npm install
     └────┬─────┘  download Chromium, npm install Defuddle
          │
          ▼
+┌─────────────────┐     Pre-crawl site analysis
+│   recon.py      │     Inputs:  root URL
+│   (Step 1b)     │     Process: raw HTTP fetch → Playwright render → compare
+│                 │              → check llms.txt, sitemap.xml → classify site
+│                 │     Outputs: /tmp/<lib>-recon.json (rendering, discovery
+│                 │              method, suggested flags, URL patterns)
+└────────┬────────┘
+         │  recon report informs crawl parameters
+         ▼
 ┌─────────────────┐     BFS traversal with Playwright+stealth
 │   crawl.py      │     Inputs:  root URL, --same-path-prefix, --max-depth,
 │   (Step 2)      │              --exclude-pattern
@@ -331,6 +340,15 @@ npm install
 <summary><strong>CLI Reference</strong></summary>
 
 <br>
+
+**recon.py** — Analyze a documentation site before crawling
+
+```
+python3 recon.py <root-url> [options]
+
+  --output FILE            Output report path (default: /tmp/recon.json)
+  --timeout SECS           Max total runtime in seconds (default: 30)
+```
 
 **crawl.py** — Discover documentation pages via BFS crawl
 
