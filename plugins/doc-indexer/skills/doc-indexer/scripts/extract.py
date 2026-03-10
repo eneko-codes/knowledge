@@ -210,20 +210,32 @@ def clean_title(title):
     return title.strip()
 
 
-def clean_markdown(markdown):
+def clean_markdown(markdown, source_url=""):
     """Post-process extracted markdown.
 
     Applies minimal cleanup that both extractors may need:
     - Strip leading H1 (build_plugin.py template adds its own)
-    - Strip internal documentation links (meaningless outside the doc site)
+    - Strip links pointing to the source documentation site
+    - Strip internal documentation links (relative paths)
     - Collapse excessive blank lines
     """
     # Strip the leading H1 heading from the markdown content.
     # The section template in build_plugin.py adds its own "# {title}" heading.
     markdown = re.sub(r'^#\s+[^\n]+\n+', '', markdown, count=1)
 
-    # Strip internal documentation links — absolute paths like [Name](/docs/thing)
-    # are meaningless in the generated skill. Keep just the link text.
+    # Strip links pointing to the source documentation site.
+    # Defuddle outputs absolute URLs like [Name](https://laravel.com/docs/12.x/routing#section)
+    # which are useless in the generated skill. Keep just the link text.
+    if source_url:
+        domain = urlparse(source_url).netloc
+        if domain:
+            markdown = re.sub(
+                rf'\[([^\]]+)\]\(https?://{re.escape(domain)}[^)]*\)',
+                r'\1',
+                markdown,
+            )
+
+    # Strip internal documentation links — relative paths like [Name](/docs/thing)
     markdown = re.sub(r'\[([^\]]+)\]\(<{0,1}/[^)>]+>{0,1}\)', r'\1', markdown)
 
     # Collapse runs of 4+ blank lines to 3
@@ -554,7 +566,7 @@ def extract_page(html, html_path, url, guess_languages=False):
     markdown = result["markdown"]
 
     # Post-process markdown
-    markdown = clean_markdown(markdown)
+    markdown = clean_markdown(markdown, source_url=url)
     if guess_languages:
         markdown = _guess_code_block_languages(markdown)
 

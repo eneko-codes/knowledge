@@ -25,13 +25,16 @@ import logging
 import os
 import random
 import re
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
-from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -129,75 +132,54 @@ def extract_markdown_signals(markdown_text):
 
 
 def extract_live_signals(page):
-    """Extract key signals from a live rendered page for comparison.
+    """Extract key signals from a live rendered page using Defuddle.
 
-    Uses JavaScript evaluation in the browser to get the same signals
-    we extract from markdown, but ONLY from the main content area.
-
-    IMPORTANT: Signals must be extracted from the main content area only,
-    not the full page. Counting headings/code blocks from the full page
-    (including sidebar/nav) causes systematic false mismatches.
+    Uses the same extraction engine as extract.py (Defuddle) to ensure
+    the comparison baseline matches how the content was originally extracted.
+    Falls back to a simple full-page signal extraction if Defuddle fails.
     """
-    # All signals are extracted from the main content area only.
-    # These CSS selectors approximate the content area on the live page.
-    signals = page.evaluate("""() => {
-        const selectors = [
-            'main', 'article', '[role="main"]', '#content', '#main-content',
-            '.content', '.docs-content', '.doc-content', '.markdown-body',
-            '.documentation', '.post-content', '.page-content',
-            '.article-content', '.rst-content', '.md-content'
-        ];
+    # Save the rendered HTML to a temp file for Defuddle
+    html = page.content()
+    url = page.url
 
-        // Find the main content element (same logic as extract.py)
-        let contentEl = null;
-        for (const sel of selectors) {
-            const el = document.querySelector(sel);
-            if (el && el.textContent.trim().length > 500) {
-                // If the match contains <nav> or <aside>, try to find a
-                // more specific child element (matching extract.py behavior)
-                if (el.querySelector('nav') || el.querySelector('aside')) {
-                    const childTags = ['article', 'section', 'div'];
-                    let found = false;
-                    for (const tag of childTags) {
-                        for (const child of el.children) {
-                            if (child.tagName.toLowerCase() === tag
-                                && child.textContent.trim().length > 500
-                                && !child.querySelector('nav')
-                                && child.tagName.toLowerCase() !== 'nav'
-                                && child.tagName.toLowerCase() !== 'aside') {
-                                contentEl = child;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (found) break;
-                    }
-                    if (!found) contentEl = el;
-                } else {
-                    contentEl = el;
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False, encoding="utf-8") as tmp:
+        tmp.write(html)
+        tmp_path = tmp.name
+
+    try:
+        script = SCRIPT_DIR / "defuddle_extract.mjs"
+        result = subprocess.run(
+            ["node", str(script), tmp_path, url],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            content = data.get("content", "")
+            if len(content.strip()) >= 200:
+                lines = content.split("\n")
+                heading_count = sum(1 for line in lines if re.match(r"^#{1,6}\s", line))
+                code_block_count = sum(1 for line in lines if line.strip().startswith("```")) // 2
+                return {
+                    "title": data.get("title", ""),
+                    "heading_count": heading_count,
+                    "code_block_count": code_block_count,
+                    "text_length": len(content),
                 }
-                break;
-            }
-        }
-        if (!contentEl) {
-            contentEl = document.body || document.documentElement;
-        }
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+        pass
+    finally:
+        os.unlink(tmp_path)
 
-        // Extract title from first H1 within content area, or document.title
-        const h1 = contentEl.querySelector('h1');
-        const title = h1
-            ? h1.textContent.trim().replace(/\\s+/g, ' ')
-            : (document.title || '');
-
-        // Count headings WITHIN the content area only
-        const headingCount = contentEl.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
-
-        // Count code blocks WITHIN the content area only
-        const codeBlockCount = contentEl.querySelectorAll('pre').length;
-
-        // Text length of the content area
-        const textLength = contentEl.textContent.trim().length;
-
+    # Fallback: extract signals from the full page via JS (less accurate
+    # but better than skipping the page entirely)
+    log.warning("  Defuddle unavailable for live comparison, using JS fallback")
+    signals = page.evaluate("""() => {
+        const h1 = document.querySelector('h1');
+        const title = h1 ? h1.textContent.trim().replace(/\\s+/g, ' ') : (document.title || '');
+        const body = document.body || document.documentElement;
+        const headingCount = body.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+        const codeBlockCount = body.querySelectorAll('pre').length;
+        const textLength = body.textContent.trim().length;
         return { title, headingCount, codeBlockCount, textLength };
     }""")
 
