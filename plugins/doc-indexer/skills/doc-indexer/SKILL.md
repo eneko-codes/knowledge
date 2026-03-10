@@ -20,7 +20,7 @@ cd {PLUGIN_ROOT}/scripts
 bash setup.sh
 ```
 
-This installs Python dependencies (Playwright, trafilatura, markdownify, etc.), downloads Chromium (~200MB), and installs the Node.js dependency (Defuddle) for content extraction. Requires Node.js 18+. All subsequent commands assume the venv is activated.
+This installs Python dependencies (Playwright, Pygments), downloads Chromium (~200MB), and installs the Node.js dependency (Defuddle) for content extraction. Requires Node.js 18+. All subsequent commands assume the venv is activated.
 
 ## Workflow
 
@@ -94,21 +94,17 @@ python3 extract.py /tmp/<library>-sitemap.json \
   --output /tmp/<library>-extracted/
 ```
 
-This reads the HTML files saved by crawl.py and extracts content using a two-tier strategy:
+This reads the HTML files saved by crawl.py and extracts content using Defuddle — a multi-pass content detection engine with code block standardization. It detects languages from 9+ class/attribute patterns, removes line numbers, strips toolbar/button chrome, and outputs clean markdown directly.
 
-1. **Defuddle** (primary) — Multi-pass content detection with code block standardization. Detects languages from 9+ class/attribute patterns, removes line numbers, strips toolbar/button chrome. Outputs clean markdown directly.
-2. **trafilatura** (fallback) — If Defuddle fails, trafilatura's ensemble algorithm (own heuristics + readability-lxml + jusText) extracts clean HTML, which is then converted to markdown via markdownify with code language detection.
-
-The extraction log shows which extractor was used for each page (`[defuddle]` or `[trafilatura]`).
+If Defuddle fails on a page (timeout, crash, or empty result), the page is skipped and logged as an error. Check the log for any failed pages.
 
 Add `--guess-languages` if the site has many unannotated code blocks — this uses Pygments to guess languages for bare ``` blocks. Only use when needed, as it may misclassify some blocks.
 
 **Verify output:**
 
 - Check `/tmp/<library>-extracted/` contains one JSON file per crawled page
-- Review the extractor usage summary at the end of the log
-- If many pages fell back to trafilatura, the site may have unusual HTML structure — spot-check those pages
-- Report extraction summary to the user: file count, extractor breakdown
+- Check the log for any failed pages — investigate or accept the skips
+- Report extraction summary to the user: file count, any failures
 
 ### Step 4: Review and Filter Content
 
@@ -170,7 +166,6 @@ After the user selects topics, review each remaining page and decide KEEP or SKI
 
 Check each page's extracted JSON for these issues:
 
-- `"extractor": "trafilatura"` — Defuddle failed and the fallback extractor was used. The page may have unusual HTML structure. Spot-check the markdown for quality. Tell the user: _"This page used the fallback extractor (trafilatura). Here's a preview: [first 200 chars]. Keep, skip, or re-extract?"_
 - Markdown looks garbled (broken tables, truncated code blocks, navigation text mixed with content) — tell the user: _"This page's markdown looks malformed. Here's an excerpt: [first 200 chars]. Keep, skip, or flag for manual review?"_
 - The `category` field in the extracted JSON is metadata only — it does not affect directory placement. All files go into a flat `pages/` directory.
 
@@ -338,7 +333,7 @@ All scripts are in `{PLUGIN_ROOT}/scripts/`:
 | Script                 | Purpose                                      | Key Arguments                                                                |
 | ---------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
 | `crawl.py`             | Discover all doc pages via BFS crawl         | `<root-url>` `--output` `--max-depth` `--max-pages` `--delay` `--same-path-prefix` |
-| `extract.py`           | Extract content (Defuddle + trafilatura)     | `<sitemap.json>` `--output` `--force` `--guess-languages`                    |
+| `extract.py`           | Extract content via Defuddle                 | `<sitemap.json>` `--output` `--force` `--guess-languages`                    |
 | `defuddle_extract.mjs` | Node.js wrapper for Defuddle (called by extract.py) | `<html-file>` `[url]`                                                 |
 | `build_plugin.py`      | Assemble skill from extracted content        | `<library-name>` `<extracted-dir>` `--version` `--source-url` `--output-dir` |
 | `validate.py`          | Verify skill structural integrity            | `<skill-dir>` `--extracted-dir`                                              |
@@ -370,4 +365,4 @@ Templates are in `{PLUGIN_ROOT}/templates/`:
 
 8. **Report, don't assume.** After each step, report results to the user. Do not silently skip failed pages or empty extractions. The user decides how to handle issues.
 
-9. **One browser instance.** `crawl.py` and `verify.py` use Playwright with stealth patches. They manage their own browser lifecycle — do not run them concurrently. `extract.py` does not use a browser — it processes saved HTML files via Defuddle (Node.js) and trafilatura (Python).
+9. **One browser instance.** `crawl.py` and `verify.py` use Playwright with stealth patches. They manage their own browser lifecycle — do not run them concurrently. `extract.py` does not use a browser — it processes saved HTML files via Defuddle (Node.js).
