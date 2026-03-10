@@ -14,7 +14,7 @@ Architecture:
   4. Output one JSON file per page with all structured data
 
 Usage:
-    python3 extract.py <sitemap.json> [--output extracted/] [--force] [--guess-languages]
+    python3 extract.py <sitemap.json> [--output extracted/] [--force]
 """
 
 import argparse
@@ -42,8 +42,6 @@ def parse_args():
     p.add_argument("sitemap", help="Path to sitemap.json from crawl.py")
     p.add_argument("--output", "-o", default="extracted", help="Output directory (default: extracted)")
     p.add_argument("--force", action="store_true", help="Re-extract pages even if output file already exists")
-    p.add_argument("--guess-languages", action="store_true",
-                   help="Use Pygments to guess language for unannotated code blocks")
     return p.parse_args()
 
 
@@ -154,33 +152,6 @@ def clean_markdown(markdown, source_url=""):
     markdown = re.sub(r"\n{4,}", "\n\n\n", markdown)
 
     return markdown.strip()
-
-
-# ---------------------------------------------------------------------------
-# Pygments language guessing
-# ---------------------------------------------------------------------------
-
-def _guess_code_block_languages(markdown_text):
-    """Annotate bare ``` code blocks with Pygments-guessed languages.
-
-    Only called when --guess-languages is set.
-    """
-    from pygments.lexers import guess_lexer
-    from pygments.util import ClassNotFound
-
-    def replace_bare_fence(match):
-        code = match.group(1)
-        if not code.strip():
-            return match.group(0)
-        try:
-            lexer = guess_lexer(code)
-            lang = lexer.aliases[0] if lexer.aliases else lexer.name.lower()
-            return f"```{lang}\n{code}```"
-        except (ClassNotFound, Exception):
-            return match.group(0)
-
-    pattern = re.compile(r'```\n(.*?)```', re.DOTALL)
-    return pattern.sub(replace_bare_fence, markdown_text)
 
 
 # ---------------------------------------------------------------------------
@@ -345,7 +316,7 @@ def url_to_filename(url):
 # Core extraction
 # ---------------------------------------------------------------------------
 
-def extract_page(html_path, url, guess_languages=False):
+def extract_page(html_path, url):
     """Extract content from a saved HTML page.
 
     Uses Defuddle for content extraction. If Defuddle fails, the page is
@@ -359,9 +330,6 @@ def extract_page(html_path, url, guess_languages=False):
 
     title = clean_title(result["title"])
     markdown = clean_markdown(result["markdown"], source_url=url)
-
-    if guess_languages:
-        markdown = _guess_code_block_languages(markdown)
 
     code_blocks = extract_code_blocks_from_markdown(markdown)
     headings = extract_headings_from_markdown(markdown)
@@ -437,7 +405,7 @@ def main():
             continue
 
         try:
-            data = extract_page(html_path, url, guess_languages=args.guess_languages)
+            data = extract_page(html_path, url)
 
             if data is None:
                 failed += 1

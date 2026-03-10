@@ -28,7 +28,6 @@ source .venv/bin/activate
 # Install Python dependencies:
 #   - playwright:         Browser automation (used by crawl.py and verify.py)
 #   - playwright-stealth: Anti-fingerprint patches to bypass bot detection
-#   - pygments:           Code language guessing for unannotated blocks
 pip install -r requirements.txt
 
 # Download the Chromium browser binary for Playwright (~200MB one-time).

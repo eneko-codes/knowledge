@@ -1,3 +1,2 @@
 playwright>=1.40
 playwright-stealth>=1.0
-pygments>=2.17

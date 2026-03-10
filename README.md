@@ -266,7 +266,6 @@ npm install
 │        │        │       └──────────────────────────┘
 │                 │              → parse markdown: code blocks, headings, sigs
 │                 │              → classify page category
-│                 │              → Pygments language guess (optional)
 │                 │     Outputs: /tmp/<lib>-extracted/*.json (one per page)
 └────────┬────────┘
          │  extracted JSON files
@@ -370,7 +369,6 @@ python3 extract.py <sitemap.json> [options]
 
   --output DIR             Output directory for JSON files (default: extracted/)
   --force                  Re-extract even if output file already exists
-  --guess-languages        Use Pygments to guess language for unannotated code blocks
 ```
 
 **build_plugin.py** — Assemble extracted content into a documentation skill

@@ -205,8 +205,6 @@ python3 extract.py /tmp/<library>-sitemap.json \
 
 This reads the HTML files saved by crawl.py and extracts content using Defuddle — a multi-pass content detection engine with code block standardization. It detects languages from 9+ class/attribute patterns, removes line numbers, strips toolbar/button chrome, and outputs clean markdown directly.
 
-Add `--guess-languages` if the site has many unannotated code blocks — this uses Pygments to guess languages for bare ``` blocks. Only use when needed, as it may misclassify some blocks.
-
 #### After extraction completes: Evaluate results
 
 Check the log output and the `/tmp/<library>-extracted/` directory.
@@ -491,7 +489,7 @@ All scripts are in `{PLUGIN_ROOT}/scripts/`:
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `recon.py`             | Analyze site before crawling                 | `<root-url>` `--output` `--timeout`                                                                    |
 | `crawl.py`             | Discover all doc pages via BFS crawl         | `<root-url>` `--output` `--max-depth` `--max-pages` `--delay` `--same-path-prefix` `--exclude-pattern` |
-| `extract.py`           | Extract content via Defuddle                 | `<sitemap.json>` `--output` `--force` `--guess-languages`                                              |
+| `extract.py`           | Extract content via Defuddle                 | `<sitemap.json>` `--output` `--force`                                                                  |
 | `defuddle_extract.mjs` | Node.js wrapper for Defuddle (called by extract.py) | `<html-file>` `[url]`                                                                           |
 | `build_plugin.py`      | Assemble skill from extracted content        | `<library-name>` `<extracted-dir>` `--version` `--source-url` `--output-dir`                           |
 | `validate.py`          | Verify skill structural integrity            | `<skill-dir>` `--extracted-dir`                                                                        |
