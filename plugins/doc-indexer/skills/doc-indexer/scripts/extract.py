@@ -10,8 +10,7 @@ Architecture:
   For each page in the sitemap (with saved HTML from crawl.py):
   1. Extract content via Defuddle (Node.js subprocess, produces markdown)
   2. Extract metadata: code blocks, headings, signatures, warnings
-  3. Classify the page into a documentation category
-  4. Output one JSON file per page with all structured data
+  3. Output one JSON file per page with all structured data
 
 Usage:
     python3 extract.py <sitemap.json> [--output extracted/] [--force]
@@ -71,8 +70,8 @@ def extract_with_defuddle(html_path, url):
             return None
         data = json.loads(result.stdout)
         content = data.get("content", "")
-        if len(content.strip()) < 200:
-            log.warning(f"  Defuddle: too little content ({len(content.strip())} chars)")
+        if not content.strip():
+            log.warning("  Defuddle: empty content")
             return None
         return {"title": data.get("title", ""), "markdown": content}
     except subprocess.TimeoutExpired:
@@ -111,21 +110,9 @@ def extract_headings_from_markdown(markdown):
 
 
 def clean_title(title):
-    """Clean a page title by removing site name suffixes.
-
-    Splits on common delimiters and returns the shortest meaningful segment.
-    """
+    """Clean a page title by stripping leading/trailing whitespace."""
     if not title:
         return title
-
-    for sep in [" | ", " - ", " :: ", " — ", " · ", " – "]:
-        if sep in title:
-            parts = [p.strip() for p in title.split(sep) if p.strip()]
-            if len(parts) > 1:
-                candidates = [p for p in parts if len(p) >= 3]
-                if candidates:
-                    return min(candidates, key=len)
-
     return title.strip()
 
 
@@ -177,85 +164,6 @@ def extract_signatures(code_blocks):
                 if len(sig) < 300 and sig not in signatures:
                     signatures.append(sig)
     return signatures
-
-
-# ---------------------------------------------------------------------------
-# Page classification
-# ---------------------------------------------------------------------------
-
-def classify_page(title, headings, code_blocks, markdown_text, url=""):
-    """Classify a documentation page into one of five categories.
-
-    Categories: warning, example, api-reference, tutorial, conceptual.
-    """
-    title_lower = title.lower()
-    text_lower = markdown_text.lower()
-    url_path = urlparse(url).path.lower() if url else ""
-
-    text_len = len(markdown_text)
-    code_len = sum(len(b["content"]) for b in code_blocks)
-    code_ratio = code_len / max(text_len, 1)
-
-    warning_title_indicators = ["deprecat", "breaking change", "upgrade guide",
-                                "migration guide", "end of life", "eol",
-                                "sunset", "removed in"]
-    warning_body_indicators = ["deprecated", "breaking change", "end of life", "eol",
-                               "sunset", "removed in", "migration guide", "upgrade guide",
-                               "no longer supported", "will be removed"]
-    if any(ind in title_lower for ind in warning_title_indicators):
-        return "warning"
-    if sum(1 for ind in warning_body_indicators if ind in text_lower) >= 3:
-        return "warning"
-
-    url_api_bonus = 2 if any(seg in url_path for seg in ["/api/", "/reference/", "/ref/"]) else 0
-    url_tutorial_bonus = 2 if any(seg in url_path for seg in ["/tutorial/", "/guide/", "/guides/", "/getting-started/"]) else 0
-    url_cli_bonus = 2 if "/cli/" in url_path else 0
-
-    h2h3_headings = [h["text"] for h in headings if h.get("level") in (2, 3)]
-    sig_like_count = 0
-    for ht in h2h3_headings:
-        if "(" in ht and ")" in ht:
-            sig_like_count += 1
-        elif re.match(r'^(?:string|int|bool|void|array|object|float|static|public|private)\s+\w+', ht, re.IGNORECASE):
-            sig_like_count += 1
-    heading_api_bonus = 2 if (h2h3_headings and sig_like_count > len(h2h3_headings) / 2) else 0
-
-    tutorial_title_indicators = ["getting started", "tutorial", "walkthrough",
-                                "quickstart", "quick start", "installation", "how to"]
-    tutorial_body_indicators = ["step 1", "step 2", "tutorial", "walkthrough",
-                               "quickstart", "quick start", "how to", "guide",
-                               "example", "recipe", "cookbook", "hands-on",
-                               "follow along"]
-    tutorial_title_score = sum(3 for ind in tutorial_title_indicators if ind in title_lower)
-    tutorial_body_score = sum(1 for ind in tutorial_body_indicators if ind in text_lower)
-    tutorial_score = tutorial_title_score + tutorial_body_score + url_tutorial_bonus
-    if tutorial_score >= 3:
-        return "tutorial"
-
-    api_title_indicators = ["reference", "api", "helpers", "collections"]
-    api_body_indicators = ["api reference", "api documentation", "function reference",
-                          "method reference", "class reference", "type reference",
-                          "parameters", "returns", "arguments", "endpoint",
-                          "request", "response", "schema", "request body",
-                          "response body", "throws", "interface", "enum",
-                          "http method"]
-    api_title_score = sum(3 for ind in api_title_indicators if ind in title_lower)
-    api_body_score = sum(1 for ind in api_body_indicators if ind in text_lower)
-    api_score = api_title_score + api_body_score + url_api_bonus + url_cli_bonus + heading_api_bonus
-    if api_score >= 4 or (code_ratio > 0.3 and any(extract_signatures([b]) for b in code_blocks)):
-        return "api-reference"
-
-    if code_ratio > 0.6 and tutorial_score < 3:
-        return "example"
-
-    concept_indicators = ["overview", "introduction", "concept", "architecture", "design",
-                         "explanation", "understanding", "background"]
-    if sum(1 for ind in concept_indicators if ind in text_lower) >= 1:
-        return "conceptual"
-
-    if code_ratio > 0.4:
-        return "example"
-    return "conceptual"
 
 
 # ---------------------------------------------------------------------------
@@ -335,12 +243,10 @@ def extract_page(html_path, url):
     headings = extract_headings_from_markdown(markdown)
     signatures = extract_signatures(code_blocks)
     warnings = extract_warnings(markdown)
-    category = classify_page(title, headings, code_blocks, markdown, url)
 
     return {
         "url": url,
         "title": title,
-        "category": category,
         "markdown": markdown,
         "code_blocks": code_blocks,
         "signatures": signatures,
@@ -376,7 +282,7 @@ def main():
         log.error("Re-run crawl.py to generate saved HTML files")
         sys.exit(1)
 
-    category_counts = {}
+    extracted = 0
     failed = 0
     skipped = 0
 
@@ -386,14 +292,8 @@ def main():
         filename = url_to_filename(url)
         output_path = os.path.join(args.output, filename)
         if not args.force and os.path.exists(output_path):
-            try:
-                with open(output_path, "r", encoding="utf-8") as f:
-                    cached = json.load(f)
-                cat = cached.get("category", "conceptual")
-                category_counts[cat] = category_counts.get(cat, 0) + 1
-            except Exception:
-                pass
             skipped += 1
+            extracted += 1
             continue
 
         log.info(f"[{i+1}/{len(pages)}] {url}")
@@ -411,13 +311,11 @@ def main():
                 failed += 1
                 continue
 
-            cat = data["category"]
-            category_counts[cat] = category_counts.get(cat, 0) + 1
-
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
-            log.info(f"  -> {cat} | {len(data['markdown'])} chars | "
+            extracted += 1
+            log.info(f"  {len(data['markdown'])} chars | "
                      f"{len(data['code_blocks'])} code blocks | "
                      f"{len(data['signatures'])} sigs")
 
@@ -428,14 +326,11 @@ def main():
     log.info("=" * 60)
     log.info("Extraction complete")
     log.info(f"Output directory: {args.output}")
-    log.info(f"Total pages extracted: {sum(category_counts.values())}")
+    log.info(f"Extracted: {extracted}")
     if skipped:
         log.info(f"Skipped (already extracted): {skipped}")
     if failed:
         log.info(f"Failed: {failed}")
-    log.info("Category breakdown:")
-    for cat, count in sorted(category_counts.items()):
-        log.info(f"  {cat}: {count}")
 
 
 if __name__ == "__main__":

@@ -35,10 +35,6 @@ log = logging.getLogger("build_plugin")
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = SCRIPT_DIR.parent / "templates"
 
-# All content files go into a single "pages/" directory.
-# Category classification from extract.py is kept as metadata for the SKILL.md
-# descriptions, but no longer drives directory structure. This avoids the 50%+
-# misclassification rate from heuristic-based categorization.
 PAGES_DIR = "pages"
 
 
@@ -245,7 +241,7 @@ def generate_skill_md(library_name, versioned_library, skill_name, pages, source
     quick_ref = ""
 
     # Simple page count summary
-    category_summary = f"- **{PAGES_DIR}/**: {len(pages)} documentation pages\n"
+    pages_summary = f"- **{PAGES_DIR}/**: {len(pages)} documentation pages\n"
 
     # Build version-specific trigger phrases for the SKILL.md description.
     # When versioned, include phrases like "laravel 11 docs" so Claude picks
@@ -272,7 +268,7 @@ def generate_skill_md(library_name, versioned_library, skill_name, pages, source
         description_terms=description_terms,
         source_url=source_url,
         total_pages=len(pages),
-        category_summary=category_summary,
+        pages_summary=pages_summary,
         quick_reference=quick_ref,
         file_listing=file_listing,
     )
@@ -329,7 +325,7 @@ def build_skill(args):
     written_files = []
 
     # Generate content sub-files — all files go into a single pages/ directory.
-    # No category-based subdirectories; SKILL.md provides topic navigation.
+    # All files go into a single flat pages/ directory.
     content_dir = skill_dir / PAGES_DIR
     content_dir.mkdir(parents=True, exist_ok=True)
 

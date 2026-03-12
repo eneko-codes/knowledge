@@ -74,7 +74,7 @@ python3 recon.py <root-url> --output /tmp/<library>-recon.json
 ```
 
 This probes the site with raw HTTP and Playwright to determine:
-- What framework powers the site (Next.js, Sphinx, VitePress, etc.)
+- Whether the site requires JavaScript rendering (static vs SPA)
 - Whether machine-readable page lists exist (llms.txt, sitemap.xml)
 - What URL patterns would flood a BFS crawl (versioned pages, tab params)
 - Recommended crawl parameters
@@ -83,7 +83,7 @@ This probes the site with raw HTTP and Playwright to determine:
 
 ```
 Recon complete for https://react.dev/reference/react:
-- Framework: Next.js (SSR)
+- Rendering: SSR hydration (content ratio 1.71)
 - Discovery: llms.txt found with 177 pages (no BFS crawl needed)
 - No URL noise patterns detected
 - Suggested flags: --same-path-prefix
@@ -240,7 +240,7 @@ This is the most important step. Read the extracted JSON files and curate the co
 
 **4a. Summarize what was found.**
 
-Read the title, category, and first ~200 characters of each extracted JSON file. Group pages by topic/module by analyzing URL paths and titles. Present a summary:
+Read the title and first ~200 characters of each extracted JSON file. Group pages by topic/module by analyzing URL paths and titles. Present a summary:
 
 ```
 Extracted 287 pages from Laravel 12 documentation.
@@ -293,7 +293,6 @@ After the user selects topics, review each remaining page and decide KEEP or SKI
 Check each page's extracted JSON for quality:
 
 - **IF markdown looks garbled** (broken tables, truncated code blocks, navigation text mixed with content) → tell the user: _"This page's markdown looks malformed. Here's an excerpt: [first 200 chars]. Keep, skip, or flag for manual review?"_
-- The `category` field in the extracted JSON is metadata only — it does not affect directory placement. All files go into a flat `pages/` directory.
 
 **4d. Gate:** Present the filter results to the user.
 
@@ -458,31 +457,15 @@ Report the final results to the user:
 **Clean up temporary files:**
 
 ```bash
-rm -f /tmp/<library>-sitemap.json
-rm -rf /tmp/<library>-html/
-rm -rf /tmp/<library>-extracted/
-rm -rf /tmp/<library>-screenshots/
+bash cleanup.sh <library-name>
 ```
 
-After cleaning temp files, ask the user if they also want to reclaim disk space by removing the Python virtual environment (~50MB) and the Chromium browser binary (~200MB). Explain that these are only needed by doc-indexer, and if deleted, `setup.sh` must be re-run before indexing docs again:
-
-```
-The doc-indexer environment takes ~300MB of disk space:
-- Python venv: {PLUGIN_ROOT}/scripts/.venv/ (~50MB)
-- Node modules: {PLUGIN_ROOT}/scripts/node_modules/ (~30MB)
-- Chromium browser: ~/.cache/ms-playwright/ (~200MB)
-
-These are only used when indexing new documentation. Want me to delete them
-to reclaim disk space? You'll need to re-run setup.sh if you index docs again
-in the future. (yes/no)
-```
+After cleaning temp files, ask the user if they also want to reclaim disk space (~300MB: venv, node_modules, Chromium). These are only needed by doc-indexer — if deleted, `setup.sh` must be re-run before indexing again.
 
 If yes:
 
 ```bash
-rm -rf {PLUGIN_ROOT}/scripts/.venv/
-rm -rf {PLUGIN_ROOT}/scripts/node_modules/
-rm -rf ~/.cache/ms-playwright/
+bash teardown.sh
 ```
 
 ## Script Reference
@@ -499,6 +482,8 @@ All scripts are in `{PLUGIN_ROOT}/scripts/`:
 | `validate.py`          | Verify skill structural integrity            | `<skill-dir>` `--extracted-dir`                                                                        |
 | `verify.py`            | Compare generated content against live pages | `<skill-dir>` `--delay` `--screenshot-dir`                                                             |
 | `setup.sh`             | Create venv, install Python + Node.js deps   | (none)                                                                                                 |
+| `cleanup.sh`           | Remove temp files after indexing             | `<library-name>`                                                                                       |
+| `teardown.sh`          | Remove venv, node_modules, Chromium (~300MB) | (none)                                                                                                 |
 
 Templates are in `{PLUGIN_ROOT}/templates/`:
 
@@ -511,7 +496,7 @@ Templates are in `{PLUGIN_ROOT}/templates/`:
 
 1. **Verbatim extraction.** Never paraphrase, summarize, or rewrite documentation content. Copy it exactly as it appears on the source site. Code blocks must be preserved character-for-character.
 
-2. **Never edit extracted content.** During the review step (Step 4), you may DELETE pages (skip them) or RECLASSIFY pages (change category), but never modify the markdown content itself. The content must be exactly what the extractor produced from the original page. If content looks wrong, flag it to the user — do not attempt to fix or improve it.
+2. **Never edit extracted content.** During the review step (Step 4), you may DELETE pages (skip them) but never modify the markdown content itself. The content must be exactly what the extractor produced from the original page. If content looks wrong, flag it to the user — do not attempt to fix or improve it.
 
 3. **Flag extraction problems.** If a page's markdown looks garbled (broken tables, navigation text mixed with content, truncated code blocks), tell the user: "This page may not have extracted cleanly — here's what it looks like: [excerpt]. Keep, skip, or re-extract?" Never silently include garbled content.
 

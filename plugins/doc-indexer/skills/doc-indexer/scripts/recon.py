@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Reconnaissance probe for documentation sites — runs BEFORE crawl.py.
 
-Analyzes a documentation site's rendering strategy, framework, page discovery
-mechanisms, and URL patterns to produce a structured JSON report.  This report
-guides crawl parameter selection so crawl.py can be invoked with optimal flags
+Analyzes a documentation site's rendering strategy, page discovery mechanisms,
+and URL patterns to produce a structured JSON report.  This report guides crawl
+parameter selection so crawl.py can be invoked with optimal flags
 (--same-path-prefix, --max-depth, --exclude-pattern, etc.) without manual
 trial-and-error.
 
@@ -109,54 +109,6 @@ def _extract_visible_text(html):
     return extractor.get_text()
 
 
-# ---------------------------------------------------------------------------
-# Framework detection — scan raw HTML source for telltale markers.
-# Each framework leaves distinctive artifacts in its server-rendered output
-# (inline JSON blobs, root element IDs, asset path conventions, meta tags).
-# ---------------------------------------------------------------------------
-
-_FRAMEWORK_SIGNATURES = [
-    # (name, list of patterns to search for in the HTML source)
-    ("Next.js",     ["__NEXT_DATA__", 'id="__next"', "/_next/"]),
-    ("Nuxt",        ["__NUXT__", 'id="__nuxt"', "/_nuxt/"]),
-    ("Gatsby",      ['id="___gatsby"', '<meta name="generator" content="Gatsby']),
-    ("VitePress",   ["__VP_HASH_MAP__", "VPContent"]),
-    ("Docusaurus",  ['id="__docusaurus"']),
-    ("Sphinx",      ["sphinxsidebar", '<meta name="generator" content="Sphinx']),
-    ("Hugo",        ['<meta name="generator" content="Hugo']),
-    ("MkDocs",      ['<meta name="generator" content="mkdocs']),
-    ("Jekyll",      ['<meta name="generator" content="Jekyll']),
-    ("Angular",     ["ng-version=", "<app-root"]),
-    ("SvelteKit",   ["__sveltekit"]),
-    ("Astro",       ['<meta name="generator" content="Astro', 'class="astro-']),
-    ("DocC",        ["documentation-topic"]),
-    ("GitBook",     ["gitbook"]),
-]
-
-
-def _detect_framework(html):
-    """Identify the frontend framework from HTML source markers.
-
-    Returns the first match because frameworks are mutually exclusive in
-    practice — a site is built with one static-site generator or SPA framework.
-    """
-    for name, markers in _FRAMEWORK_SIGNATURES:
-        for marker in markers:
-            if marker in html:
-                return name
-    return None
-
-
-def _detect_meta_generator(html):
-    """Extract the content attribute from <meta name="generator" ...>.
-
-    Many static-site generators stamp a generator meta tag with their name
-    and version.  This is more authoritative than heuristic HTML scanning.
-    """
-    match = re.search(r'<meta\s+name=["\']generator["\']\s+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
-    return match.group(1).strip() if match else None
-
-
 def _detect_requires_js(html):
     """Check if a <noscript> tag mentions JavaScript, suggesting JS is required.
 
@@ -246,22 +198,16 @@ def probe_raw_html(url, budget):
     visible_text = _extract_visible_text(html)
     raw_text_length = len(visible_text.strip())
 
-    framework = _detect_framework(html)
-    meta_generator = _detect_meta_generator(html)
     requires_js = _detect_requires_js(html)
     script_count = _count_script_tags(html)
 
     log.info(f"  Raw text length: {raw_text_length} chars, scripts: {script_count}")
-    if framework:
-        log.info(f"  Framework detected: {framework}")
     if requires_js:
         log.info("  Site indicates JavaScript is required")
 
     return {
         "html": html,
         "raw_text_length": raw_text_length,
-        "framework": framework,
-        "meta_generator": meta_generator,
         "requires_js": requires_js,
         "script_count": script_count,
     }
@@ -814,16 +760,12 @@ def recon(args):
     # --- Probe 1: Raw HTML ---
     raw = probe_raw_html(root_url, budget)
     raw_text_length = 0
-    framework = None
-    meta_generator = None
     requires_js = False
     script_count = 0
 
     if raw is not None:
         probes_completed.append("raw_html")
         raw_text_length = raw["raw_text_length"]
-        framework = raw["framework"]
-        meta_generator = raw["meta_generator"]
         requires_js = raw["requires_js"]
         script_count = raw["script_count"]
 
@@ -881,8 +823,6 @@ def recon(args):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "probes_completed": probes_completed,
         "rendering": rendering,
-        "framework": framework,
-        "meta_generator": meta_generator,
         "content_ratio": content_ratio,
         "requires_js": requires_js,
         "script_count": script_count,

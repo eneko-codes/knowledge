@@ -17,7 +17,7 @@ Complete reference for {library_name_title}, extracted from the official documen
 
 ## Contents
 
-{category_summary}
+{pages_summary}
 {quick_reference}
 ## File Index
 
