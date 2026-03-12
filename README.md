@@ -265,7 +265,6 @@ npm install
 │        │        │       │ (Defuddle → markdown)    │ per HTML file
 │        │        │       └──────────────────────────┘
 │                 │              → parse markdown: code blocks, headings, sigs
-│                 │              → classify page category
 │                 │     Outputs: /tmp/<lib>-extracted/*.json (one per page)
 └────────┬────────┘
          │  extracted JSON files
@@ -317,7 +316,8 @@ npm install
          ▼
     ┌──────────┐
     │ FINALIZE │  Skill is auto-discovered from .claude/skills/
-    │ (Step 7) │  Clean up /tmp/ files, optionally delete .venv + Chromium
+    │ (Step 7) │  cleanup.sh removes /tmp/ files
+    │          │  teardown.sh optionally removes .venv + Chromium
     └──────────┘
 ```
 
@@ -398,6 +398,18 @@ python3 verify.py <skill-dir> [options]
 
   --delay SECS             Base delay between requests (default: 0.5)
   --screenshot-dir DIR     Save full-page screenshots of mismatched pages
+```
+
+**cleanup.sh** — Remove temporary files after successful indexing
+
+```
+bash cleanup.sh <library-name>
+```
+
+**teardown.sh** — Remove venv, node_modules, and Chromium (~300MB)
+
+```
+bash teardown.sh
 ```
 
 </details>
